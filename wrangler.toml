@@ -1,0 +1,7 @@
+name = "iram-services"
+compatibility_date = "2024-05-02"
+compatibility_flags = [ "nodejs_compat" ]
+
+[vars]
+# คุณสามารถกำหนด Environment Variables ใน Cloudflare Pages Dashboard แทนหรือใส่ที่นี่ได้
+# DATABASE_URL = "..."
