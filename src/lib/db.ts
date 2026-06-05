@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
 const connectionString = process.env.DATABASE_URL;
 const isMock = !connectionString || 
@@ -7,10 +7,10 @@ const isMock = !connectionString ||
                connectionString.startsWith('mock:');
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: any;
 };
 
-let prismaInstance: PrismaClient | null = null;
+let prismaInstance: any = null;
 
 async function getPrisma() {
   if (prismaInstance) return prismaInstance;
@@ -20,10 +20,22 @@ async function getPrisma() {
     const pg = await import('pg');
     const { PrismaPg } = await import('@prisma/adapter-pg');
     
+    // Dynamically choose PrismaClient based on runtime
+    let PrismaClientConstructor;
+    const isEdge = process.env.NEXT_RUNTIME === 'edge' || typeof EdgeRuntime === 'string';
+    
+    if (isEdge) {
+      const edgeModule = await import('@prisma/client/edge');
+      PrismaClientConstructor = edgeModule.PrismaClient;
+    } else {
+      const nodeModule = await import('@prisma/client');
+      PrismaClientConstructor = nodeModule.PrismaClient;
+    }
+    
     const pool = new pg.default.Pool({ connectionString });
     const adapter = new PrismaPg(pool);
     
-    prismaInstance = globalForPrisma.prisma ?? new PrismaClient({ 
+    prismaInstance = globalForPrisma.prisma ?? new PrismaClientConstructor({ 
       adapter,
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
     });
