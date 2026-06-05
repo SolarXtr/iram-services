@@ -27,7 +27,8 @@ async function getPrisma() {
                    typeof require === 'undefined';
     
     if (isEdge) {
-      const edgeModule = await import('@prisma/client/edge');
+      // Use eval('import') to prevent the bundler from trying to package Prisma WASM on Edge
+      const edgeModule = await eval("import('@prisma/client/edge')");
       PrismaClientConstructor = edgeModule.PrismaClient;
     } else {
       // Use eval('require') to prevent the bundler from packaging the Node.js client on the Edge
