@@ -28,7 +28,8 @@ async function getPrisma() {
       const edgeModule = await import('@prisma/client/edge');
       PrismaClientConstructor = edgeModule.PrismaClient;
     } else {
-      const nodeModule = await import('@prisma/client');
+      // Use eval('require') to prevent the bundler from packaging the Node.js client on the Edge
+      const nodeModule = eval("require")('@prisma/client');
       PrismaClientConstructor = nodeModule.PrismaClient;
     }
     
