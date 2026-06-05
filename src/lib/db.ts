@@ -22,7 +22,9 @@ async function getPrisma() {
     
     // Dynamically choose PrismaClient based on runtime
     let PrismaClientConstructor;
-    const isEdge = process.env.NEXT_RUNTIME === 'edge' || typeof EdgeRuntime === 'string';
+    const isEdge = process.env.NEXT_RUNTIME === 'edge' || 
+                   typeof EdgeRuntime === 'string' || 
+                   typeof require === 'undefined';
     
     if (isEdge) {
       const edgeModule = await import('@prisma/client/edge');
