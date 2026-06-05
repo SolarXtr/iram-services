@@ -23,16 +23,19 @@ async function getPrisma() {
     // Dynamically choose PrismaClient based on runtime
     let PrismaClientConstructor;
     const isEdge = process.env.NEXT_RUNTIME === 'edge' || 
-                   typeof EdgeRuntime === 'string' || 
-                   typeof require === 'undefined';
+                   typeof (globalThis as any).EdgeRuntime === 'string';
     
     if (isEdge) {
-      // Use eval('import') to prevent the bundler from trying to package Prisma WASM on Edge
-      const edgeModule = await eval("import('@prisma/client/edge')");
+      const edgeModule = await import('@prisma/client/edge');
       PrismaClientConstructor = edgeModule.PrismaClient;
     } else {
-      // Use eval('require') to prevent the bundler from packaging the Node.js client on the Edge
-      const nodeModule = eval("require")('@prisma/client');
+      // Use dynamic local require check to bypass Turbopack Edge analyzer and load Node.js package
+      const localRequire = typeof require === 'function' ? require : null;
+      const clientModuleName = '@prisma/client';
+      if (!localRequire) {
+        throw new Error('Prisma Node.js client cannot be loaded: local require is undefined');
+      }
+      const nodeModule = localRequire(clientModuleName);
       PrismaClientConstructor = nodeModule.PrismaClient;
     }
     
