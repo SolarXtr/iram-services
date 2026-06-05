@@ -81,6 +81,7 @@ export default function ResearchManagementDashboard() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDbMock, setIsDbMock] = useState(true);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -158,17 +159,21 @@ export default function ResearchManagementDashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [resUsers, resProjects, resPubs, resConsults] = await Promise.all([
+      const [resUsers, resProjects, resPubs, resConsults, resStatus] = await Promise.all([
         fetch('/api/users').then((res) => res.json()),
         fetch('/api/projects').then((res) => res.json()),
         fetch('/api/publications').then((res) => res.json()),
         fetch('/api/consultations').then((res) => res.json()),
+        fetch('/api/db-status').then((res) => res.json()).catch(() => ({ isMock: true })),
       ]);
 
       if (Array.isArray(resUsers)) setUsers(resUsers);
       if (Array.isArray(resProjects)) setProjects(resProjects);
       if (Array.isArray(resPubs)) setPublications(resPubs);
       if (Array.isArray(resConsults)) setConsultations(resConsults);
+      if (resStatus && typeof resStatus.isMock === 'boolean') {
+        setIsDbMock(resStatus.isMock);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -544,7 +549,7 @@ export default function ResearchManagementDashboard() {
             <div className="flex items-center gap-2 mt-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
               <span className="text-xs font-medium text-slate-300">
-                {process.env.DATABASE_URL ? 'PostgreSQL (Cloud SQL)' : 'Local JSON Store (Mock)'}
+                {isDbMock ? 'Local JSON Store (Mock)' : 'PostgreSQL (Cloud SQL)'}
               </span>
             </div>
           </div>
