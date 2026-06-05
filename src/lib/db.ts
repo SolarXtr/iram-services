@@ -1,37 +1,29 @@
-
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
-
 const connectionString = process.env.DATABASE_URL;
+const isMock = !connectionString || 
+               connectionString.includes('localhost:51213') || 
+               connectionString.startsWith('prisma+postgres://') || 
+               connectionString.startsWith('mock:');
 
-if (!connectionString) {
-  throw new Error(
-    'DATABASE_URL is not defined'
-  );
+let poolInstance: any = null;
+
+async function getPool() {
+  if (poolInstance) return poolInstance;
+  if (!isMock && connectionString) {
+    const pg = await import('pg');
+    poolInstance = new pg.default.Pool({
+      connectionString,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000,
+    });
+  }
+  return poolInstance;
 }
 
-const globalForPrisma = globalThis as unknown as {
-  prisma?: PrismaClient;
-};
-
-const pool = new pg.Pool({
-  connectionString,
-  ssl: false,
-});
-
-const adapter = new PrismaPg(pool);
-
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['query', 'warn', 'error']
-        : ['error'],
-  });
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = db;
+export async function dbQuery(text: string, params?: any[]) {
+  const pool = await getPool();
+  if (!pool) {
+    throw new Error('Database pool is not initialized. Ensure DATABASE_URL is set.');
+  }
+  return pool.query(text, params);
 }
