@@ -1,77 +1,37 @@
-import type { PrismaClient } from '@prisma/client';
+
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
 const connectionString = process.env.DATABASE_URL;
-const isMock = !connectionString || 
-               connectionString.includes('localhost:51213') || 
-               connectionString.startsWith('prisma+postgres://') || 
-               connectionString.startsWith('mock:');
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: any;
-};
-
-let prismaInstance: any = null;
-
-async function getPrisma() {
-  if (prismaInstance) return prismaInstance;
-
-  if (!isMock && connectionString) {
-    // Dynamic import to avoid loading pg on Edge compiler during build/mock mode
-    const pg = await import('pg');
-    const { PrismaPg } = await import('@prisma/adapter-pg');
-    
-    // Dynamically choose PrismaClient based on runtime
-    let PrismaClientConstructor;
-    const isEdge = process.env.NEXT_RUNTIME === 'edge' || 
-                   typeof (globalThis as any).EdgeRuntime === 'string';
-    
-    if (isEdge) {
-      const edgeModule = await import('@prisma/client/edge');
-      PrismaClientConstructor = edgeModule.PrismaClient;
-    } else {
-      // Use dynamic local require check to bypass Turbopack Edge analyzer and load Node.js package
-      const localRequire = typeof require === 'function' ? require : null;
-      const clientModuleName = '@prisma/client';
-      if (!localRequire) {
-        throw new Error('Prisma Node.js client cannot be loaded: local require is undefined');
-      }
-      const nodeModule = localRequire(clientModuleName);
-      PrismaClientConstructor = nodeModule.PrismaClient;
-    }
-    
-    const pool = new pg.default.Pool({ connectionString });
-    const adapter = new PrismaPg(pool);
-    
-    prismaInstance = globalForPrisma.prisma ?? new PrismaClientConstructor({ 
-      adapter,
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
-    });
-    
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = prismaInstance;
-    }
-  }
-  return prismaInstance;
+if (!connectionString) {
+  throw new Error(
+    'DATABASE_URL is not defined'
+  );
 }
 
-// Export a Proxy client that lazily forwards operations to the dynamic Prisma instance.
-// During mock mode, this proxy is never called because apiDb routes queries to mockDb instead.
-export const db = new Proxy({} as PrismaClient, {
-  get(target, prop) {
-    if (typeof prop === 'string') {
-      return new Proxy({}, {
-        get(subTarget, subProp) {
-          if (typeof subProp === 'string') {
-            return async (...args: any[]) => {
-              const client = await getPrisma();
-              if (!client) {
-                throw new Error('Prisma database is not initialized. Ensure DATABASE_URL is set.');
-              }
-              return (client as any)[prop][subProp](...args);
-            };
-          }
-        }
-      });
-    }
-  }
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
+const pool = new pg.Pool({
+  connectionString,
+  ssl: false,
 });
+
+const adapter = new PrismaPg(pool);
+
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'warn', 'error']
+        : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db;
+}
