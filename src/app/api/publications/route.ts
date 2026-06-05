@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { apiDb } from '@/lib/apiDb';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
