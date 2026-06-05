@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server';
-import { apiDb } from '@/lib/apiDb';
 
-export const runtime = 'nodejs';
+import { NextResponse } from 'next/server';
+import { sql } from '@/lib/db';
 
 export async function GET(
   request: Request,
@@ -9,39 +8,26 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const user = await apiDb.users.findUnique(id);
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    const users = await sql`
+      SELECT *
+      FROM users
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+
+    if (users.length === 0) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
     }
-    return NextResponse.json(user);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const body = await request.json();
-    const updated = await apiDb.users.update(id, body);
-    return NextResponse.json(updated);
+    return NextResponse.json(users[0]);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const deleted = await apiDb.users.delete(id);
-    return NextResponse.json(deleted);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 }
