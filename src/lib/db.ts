@@ -14,7 +14,7 @@ async function getPool() {
       const pg = await import('pg');
       return new pg.default.Pool({
         connectionString,
-        max: 10,
+        max: 2,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 30000,
       });
