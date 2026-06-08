@@ -9,8 +9,8 @@ async function getPool() {
   try {
     const { getRequestContext } = await import('@cloudflare/next-on-pages');
     const ctx = getRequestContext();
-    if (ctx && ctx.env && ctx.env.HYPERDRIVE) {
-      connectionString = ctx.env.HYPERDRIVE.connectionString || ctx.env.HYPERDRIVE;
+    if (ctx && ctx.env && (ctx.env as any).HYPERDRIVE) {
+      connectionString = (ctx.env as any).HYPERDRIVE.connectionString || (ctx.env as any).HYPERDRIVE;
       connectionType = 'Cloudflare Hyperdrive';
     }
   } catch (e) {
