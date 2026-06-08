@@ -4,26 +4,40 @@ const isMock = !connectionString ||
                connectionString.startsWith('prisma+postgres://') || 
                connectionString.startsWith('mock:');
 
-let poolInstance: any = null;
+let poolPromise: Promise<any> | null = null;
 
 async function getPool() {
-  if (poolInstance) return poolInstance;
-  if (!isMock && connectionString) {
-    const pg = await import('pg');
-    poolInstance = new pg.default.Pool({
-      connectionString,
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 30000,
-    });
-  }
-  return poolInstance;
+  if (poolPromise) return poolPromise;
+  
+  poolPromise = (async () => {
+    if (!isMock && connectionString) {
+      const pg = await import('pg');
+      return new pg.default.Pool({
+        connectionString,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 30000,
+      });
+    }
+    return null;
+  })();
+  
+  return poolPromise;
 }
 
 export async function dbQuery(text: string, params?: any[]) {
-  const pool = await getPool();
-  if (!pool) {
-    throw new Error('Database pool is not initialized. Ensure DATABASE_URL is set.');
+  console.log(`[DB] Executing query: ${text.slice(0, 100)}...`);
+  const start = Date.now();
+  try {
+    const pool = await getPool();
+    if (!pool) {
+      throw new Error('Database pool is not initialized. Ensure DATABASE_URL is set.');
+    }
+    const res = await pool.query(text, params);
+    console.log(`[DB] Query success in ${Date.now() - start}ms`);
+    return res;
+  } catch (err) {
+    console.error(`[DB] Query failed after ${Date.now() - start}ms:`, err);
+    throw err;
   }
-  return pool.query(text, params);
 }

@@ -593,8 +593,7 @@ export const apiDb = new Proxy({} as typeof realDbHandlers, {
               try {
                 return await (realDbHandlers as any)[prop][subProp](...args);
               } catch (error) {
-                console.error(`Database error in ${prop}.${subProp}, falling back to Mock Database:`, error);
-                isDbMockActive = true;
+                console.error(`Database error in ${prop}.${subProp}, falling back to Mock Database for this query:`, error);
                 return (mockDb as any)[prop][subProp](...args);
               }
             };
