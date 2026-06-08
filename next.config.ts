@@ -1,21 +1,9 @@
 import type { NextConfig } from "next";
 
-const nodeBuiltins = [
-  'assert', 'buffer', 'crypto', 'dns', 'events', 'fs', 'net', 'path', 'querystring', 'stream', 'string_decoder', 'tls', 'url', 'util', 'util/types', 'zlib'
-];
+const isEdgeBuild = process.env.NEXT_RUNTIME === 'edge' || process.env.CLOUDFLARE_PAGES === '1' || process.env.CF_PAGES === '1';
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: [],
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals = [
-        ...(config.externals || []),
-        ...nodeBuiltins,
-        ...nodeBuiltins.map(builtin => `node:${builtin}`)
-      ];
-    }
-    return config;
-  }
+  serverExternalPackages: isEdgeBuild ? [] : ['pg'],
 };
 
 export default nextConfig;
