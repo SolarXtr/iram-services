@@ -71,8 +71,7 @@ interface Consultation {
 
 export default function ResearchManagementDashboard() {
   const [mounted, setMounted] = useState(false);
-  // Navigation & Role State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations' | 'db-status'>('dashboard');
   const [currentRole, setCurrentRole] = useState<'RESEARCHER' | 'STAFF' | 'EXECUTIVE'>('STAFF');
 
   // Data States
@@ -82,6 +81,14 @@ export default function ResearchManagementDashboard() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDbMock, setIsDbMock] = useState(true);
+  const [dbStatus, setDbStatus] = useState<any>({
+    status: 'loading',
+    isMock: false,
+    connectionType: 'Detecting...',
+    host: '',
+    databaseName: '',
+    latencyMs: 0
+  });
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,15 +171,21 @@ export default function ResearchManagementDashboard() {
         fetch('/api/projects').then((res) => res.json()),
         fetch('/api/publications').then((res) => res.json()),
         fetch('/api/consultations').then((res) => res.json()),
-        fetch('/api/db-status').then((res) => res.json()).catch(() => ({ isMock: true })),
+        fetch('/api/db-status').then((res) => res.json()).catch((err) => ({
+          status: 'error',
+          isMock: true,
+          connectionType: 'Error',
+          error: err.message || err.toString()
+        })),
       ]);
 
       if (Array.isArray(resUsers)) setUsers(resUsers);
       if (Array.isArray(resProjects)) setProjects(resProjects);
       if (Array.isArray(resPubs)) setPublications(resPubs);
       if (Array.isArray(resConsults)) setConsultations(resConsults);
-      if (resStatus && typeof resStatus.isMock === 'boolean') {
+      if (resStatus) {
         setIsDbMock(resStatus.isMock);
+        setDbStatus(resStatus);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -539,6 +552,18 @@ export default function ResearchManagementDashboard() {
               <Users className="h-5 w-5" />
               <span>บริหารข้อมูลผู้ใช้ (Users)</span>
             </button>
+
+            <button
+              onClick={() => { setActiveTab('db-status'); setSearchQuery(''); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === 'db-status'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/10'
+                  : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100'
+              }`}
+            >
+              <RefreshCw className="h-5 w-5" />
+              <span>สถานะคลาวด์เดสเก็ต (DB Status)</span>
+            </button>
           </nav>
         </div>
 
@@ -711,6 +736,111 @@ export default function ResearchManagementDashboard() {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Database Connection Status and Configuration Report */}
+          {activeTab === 'db-status' && (
+            <div className="space-y-6 max-w-4xl">
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 p-8 rounded-2xl shadow-xl relative overflow-hidden">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-white tracking-tight">รายงานสถานะการเชื่อมต่อฐานข้อมูลคลาวด์</h3>
+                    <p className="text-sm text-slate-400 mt-1">รายละเอียดการกำหนดค่าเชื่อมโยง Next.js กับ PostgreSQL Cloud SQL และ Hyperdrive</p>
+                  </div>
+                  <button
+                    onClick={fetchData}
+                    disabled={loading}
+                    className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 px-4.5 py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-all cursor-pointer"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    <span>ทดสอบการเชื่อมต่อใหม่</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                  {/* Status Indicator Card */}
+                  <div className="bg-slate-900/50 border border-slate-800/80 p-5 rounded-xl flex items-center gap-4">
+                    <div className={`p-4 rounded-xl ${dbStatus.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                      <RefreshCw className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-500 font-medium block">สถานะการเชื่อมต่อ (Status)</span>
+                      <span className={`text-base font-bold flex items-center gap-2 mt-0.5 ${dbStatus.status === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <span className={`w-2 h-2 rounded-full ${dbStatus.status === 'success' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                        {dbStatus.status === 'success' ? 'เชื่อมต่อสำเร็จ (Connected)' : 'การเชื่อมต่อผิดพลาด (Failed)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Connection Type Card */}
+                  <div className="bg-slate-900/50 border border-slate-800/80 p-5 rounded-xl flex items-center gap-4">
+                    <div className="bg-indigo-500/10 text-indigo-400 p-4 rounded-xl">
+                      <Layers className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-500 font-medium block">รูปแบบการดึงข้อมูล (Connection Type)</span>
+                      <span className="text-base font-bold text-white mt-0.5">{dbStatus.connectionType}</span>
+                    </div>
+                  </div>
+
+                  {/* Query Latency Card */}
+                  <div className="bg-slate-900/50 border border-slate-800/80 p-5 rounded-xl flex items-center gap-4">
+                    <div className="bg-amber-500/10 text-amber-400 p-4 rounded-xl">
+                      <Clock className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-500 font-medium block">ความเร็วในการตอบสนอง (Query Latency)</span>
+                      <span className="text-base font-bold text-amber-400 mt-0.5">{dbStatus.latencyMs} ms</span>
+                    </div>
+                  </div>
+
+                  {/* Database Name Card */}
+                  <div className="bg-slate-900/50 border border-slate-800/80 p-5 rounded-xl flex items-center gap-4">
+                    <div className="bg-cyan-500/10 text-cyan-400 p-4 rounded-xl">
+                      <FileText className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-500 font-medium block">ชื่อฐานข้อมูล (Database Name)</span>
+                      <span className="text-base font-bold text-white mt-0.5">{dbStatus.databaseName || 'ไม่ระบุ'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detailed Information Table */}
+                <div className="mt-8 border-t border-slate-800/80 pt-6 space-y-4">
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">รายงานการตั้งค่าทางเทคนิค (Configuration Report)</h4>
+                  
+                  <div className="bg-slate-900/40 rounded-xl border border-slate-800 divide-y divide-slate-800 overflow-hidden text-sm">
+                    <div className="grid grid-cols-3 p-4">
+                      <span className="text-slate-400 font-semibold">ที่อยู่โฮสต์ (Database Host)</span>
+                      <span className="col-span-2 font-mono text-slate-200">{dbStatus.host || 'ไม่ระบุ'}</span>
+                    </div>
+                    <div className="grid grid-cols-3 p-4">
+                      <span className="text-slate-400 font-semibold">Connection String (Masked)</span>
+                      <span className="col-span-2 font-mono text-slate-300 text-xs break-all">{dbStatus.maskedConnectionString || 'ไม่ถูกตั้งค่า'}</span>
+                    </div>
+                    {dbStatus.dbVersion && (
+                      <div className="grid grid-cols-3 p-4">
+                        <span className="text-slate-400 font-semibold">รุ่นของเซิร์ฟเวอร์ (DB Version)</span>
+                        <span className="col-span-2 text-slate-300 text-xs leading-relaxed">{dbStatus.dbVersion}</span>
+                      </div>
+                    )}
+                    {dbStatus.dbTime && (
+                      <div className="grid grid-cols-3 p-4">
+                        <span className="text-slate-400 font-semibold">เวลาของเซิร์ฟเวอร์ (DB Server Time)</span>
+                        <span className="col-span-2 text-slate-300">{new Date(dbStatus.dbTime).toLocaleString('th-TH')}</span>
+                      </div>
+                    )}
+                    {dbStatus.error && (
+                      <div className="grid grid-cols-3 p-4 bg-rose-950/20">
+                        <span className="text-rose-400 font-semibold">ข้อผิดพลาดที่พบ (Error Log)</span>
+                        <span className="col-span-2 font-mono text-rose-300 text-xs break-all leading-relaxed">{dbStatus.error}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
