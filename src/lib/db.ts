@@ -1,14 +1,14 @@
-const connectionString = process.env.DATABASE_URL;
-const isMock = !connectionString || 
-               connectionString.includes('localhost:51213') || 
-               connectionString.startsWith('prisma+postgres://') || 
-               connectionString.startsWith('mock:');
-
 let poolPromise: Promise<any> | null = null;
 
 async function getPool() {
   if (poolPromise) return poolPromise;
   
+  const connectionString = process.env.HYPERDRIVE || process.env.DATABASE_URL;
+  const isMock = !connectionString || 
+                 connectionString.includes('localhost:51213') || 
+                 connectionString.startsWith('prisma+postgres://') || 
+                 connectionString.startsWith('mock:');
+
   poolPromise = (async () => {
     if (!isMock && connectionString) {
       const pg = await import('pg');
@@ -31,7 +31,7 @@ export async function dbQuery(text: string, params?: any[]) {
   try {
     const pool = await getPool();
     if (!pool) {
-      throw new Error('Database pool is not initialized. Ensure DATABASE_URL is set.');
+      throw new Error('Database pool is not initialized. Ensure DATABASE_URL or HYPERDRIVE is set.');
     }
     const res = await pool.query(text, params);
     console.log(`[DB] Query success in ${Date.now() - start}ms`);
