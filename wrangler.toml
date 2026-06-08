@@ -8,3 +8,4 @@ directory = ".vercel/output/static"
 
 [vars]
 DATABASE_URL = "postgresql://postgres:pwd4Iram!@34.21.180.83:5432/iram_services_db?schema=public"
+ 
