@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function GET() {
   const debugInfo: any = {
@@ -17,11 +17,12 @@ export async function GET() {
     if (ctx) {
       debugInfo.hasEnv = !!ctx.env;
       if (ctx.env) {
+        const envAny = ctx.env as any;
         debugInfo.envKeys = Object.keys(ctx.env);
-        debugInfo.hyperdriveBindingExists = !!ctx.env.HYPERDRIVE;
-        debugInfo.hyperdriveBindingType = typeof ctx.env.HYPERDRIVE;
-        if (ctx.env.HYPERDRIVE) {
-          debugInfo.hyperdriveConnectionStringExists = !!ctx.env.HYPERDRIVE.connectionString;
+        debugInfo.hyperdriveBindingExists = !!envAny.HYPERDRIVE;
+        debugInfo.hyperdriveBindingType = typeof envAny.HYPERDRIVE;
+        if (envAny.HYPERDRIVE) {
+          debugInfo.hyperdriveConnectionStringExists = !!envAny.HYPERDRIVE.connectionString;
         }
       }
     }
