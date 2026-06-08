@@ -6,7 +6,6 @@ compatibility_flags = [ "nodejs_compat" ]
 binding = "HYPERDRIVE"
 id = "6a9a1370f9f44217a0f6562522f56a4f"  
 
-main = ".vercel/output/static/_worker.js/index.js"
 
 [assets]
 directory = ".vercel/output/static"
