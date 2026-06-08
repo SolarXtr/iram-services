@@ -3,7 +3,20 @@ let poolPromise: Promise<any> | null = null;
 async function getPool() {
   if (poolPromise) return poolPromise;
   
-  const connectionString = process.env.HYPERDRIVE || process.env.DATABASE_URL;
+  let connectionString = process.env.DATABASE_URL;
+  let connectionType = 'Direct PostgreSQL';
+
+  try {
+    const { getRequestContext } = await import('@cloudflare/next-on-pages');
+    const ctx = getRequestContext();
+    if (ctx && ctx.env && ctx.env.HYPERDRIVE) {
+      connectionString = ctx.env.HYPERDRIVE.connectionString || ctx.env.HYPERDRIVE;
+      connectionType = 'Cloudflare Hyperdrive';
+    }
+  } catch (e) {
+    // Fail silently when not in Cloudflare environment
+  }
+
   const isMock = !connectionString || 
                  connectionString.includes('localhost:51213') || 
                  connectionString.startsWith('prisma+postgres://') || 
@@ -11,6 +24,7 @@ async function getPool() {
 
   poolPromise = (async () => {
     if (!isMock && connectionString) {
+      console.log(`[DB] Initializing pool using: ${connectionType}`);
       const pg = await import('pg');
       return new pg.default.Pool({
         connectionString,
