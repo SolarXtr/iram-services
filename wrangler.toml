@@ -1,6 +1,11 @@
 name = "iram-services"
 compatibility_date = "2024-05-02"
 compatibility_flags = [ "nodejs_compat" ]
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "6a9a1370f9f44217a0f6562522f56a4f"  
+
 main = ".vercel/output/static/_worker.js/index.js"
 
 [assets]
@@ -8,4 +13,4 @@ directory = ".vercel/output/static"
 
 [vars]
 DATABASE_URL = "postgresql://postgres:pwd4Iram!@34.21.180.83:5432/iram_services_db?schema=public"
- 
+
