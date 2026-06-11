@@ -15,5 +15,5 @@ DATABASE_URL = "postgresql://postgres:pwd4Iram!@34.87.77.36:5432/iram_services_d
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "ef173563002144b19a4a97f1f2a5761b"
+id = "63e0b5204537429b816287decb41c4e2"
 localConnectionString = "postgresql://postgres:pwd4Iram!@34.87.77.36:5432/iram_services_db?sslmode=require&schema=public"
