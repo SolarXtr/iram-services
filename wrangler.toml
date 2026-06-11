@@ -2,14 +2,18 @@ name = "iram-services"
 compatibility_date = "2026-06-08"
 compatibility_flags = [ "nodejs_compat" ]
 main = ".vercel/output/static/_worker.js/index.js"
+no_bundle = true
+
+
 
 
 [assets]
 directory = ".vercel/output/static"
 
 [vars]
-DATABASE_URL = "postgresql://postgres:pwd4Iram!@34.21.180.83:5432/iram_services_db?schema=public"
+DATABASE_URL = "postgresql://postgres:pwd4Iram!@34.87.77.36:5432/iram_services_db?sslmode=require&schema=public"
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "ef173563002144b19a4a97f1f2a5761b"
+localConnectionString = "postgresql://postgres:pwd4Iram!@34.87.77.36:5432/iram_services_db?sslmode=require&schema=public"

@@ -26,11 +26,13 @@ async function getPool() {
     if (!isMock && connectionString) {
       console.log(`[DB] Initializing pool using: ${connectionType}`);
       const pg = await import('pg');
+      const hasSsl = connectionString.includes('sslmode=require') || connectionString.includes('ssl=true');
       return new pg.default.Pool({
         connectionString,
         max: 2,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 30000,
+        ssl: hasSsl ? { rejectUnauthorized: false } : undefined
       });
     }
     return null;

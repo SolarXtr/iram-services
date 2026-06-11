@@ -1,7 +1,10 @@
+import { mockDb } from './mockDb';
 import { dbQuery } from './db';
 
-// Helper to determine if we should report mock status - always false since mock is removed
-export const isMock = false;
+// Helper to determine if we should report mock status - always true since we reverted to mock data
+export const isMock = true;
+
+
 
 // Date formatter helper to match ISO string formatting from Prisma
 const toIsoString = (val: any) => {
@@ -12,7 +15,7 @@ const toIsoString = (val: any) => {
 const realDbHandlers = {
   users: {
     findMany: async () => {
-      const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "User" ORDER BY "createdAt" DESC');
+      const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "irUser" ORDER BY "createdAt" DESC');
       return res.rows.map((r: any) => ({
         ...r,
         createdAt: toIsoString(r.createdAt),
@@ -20,7 +23,7 @@ const realDbHandlers = {
       }));
     },
     findUnique: async (id: string) => {
-      const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "User" WHERE id = $1', [id]);
+      const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "irUser" WHERE id = $1', [id]);
       const r = res.rows[0];
       if (!r) return null;
       return {
@@ -32,7 +35,7 @@ const realDbHandlers = {
     create: async (data: any) => {
       const id = data.id || crypto.randomUUID();
       const res = await dbQuery(
-        'INSERT INTO "User" (id, name, email, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+        'INSERT INTO "irUser" (id, name, email, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
         [id, data.name, data.email, data.role]
       );
       const r = res.rows[0];
@@ -44,7 +47,7 @@ const realDbHandlers = {
     },
     update: async (id: string, data: any) => {
       // Get current user to merge updates
-      const currentRes = await dbQuery('SELECT * FROM "User" WHERE id = $1', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irUser" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('User not found');
       
@@ -53,7 +56,7 @@ const realDbHandlers = {
       const role = data.role !== undefined ? data.role : current.role;
 
       const res = await dbQuery(
-        'UPDATE "User" SET name = $1, email = $2, role = $3, "updatedAt" = NOW() WHERE id = $4 RETURNING *',
+        'UPDATE "irUser" SET name = $1, email = $2, role = $3, "updatedAt" = NOW() WHERE id = $4 RETURNING *',
         [name, email, role, id]
       );
       const r = res.rows[0];
@@ -64,7 +67,7 @@ const realDbHandlers = {
       };
     },
     delete: async (id: string) => {
-      const res = await dbQuery('DELETE FROM "User" WHERE id = $1 RETURNING *', [id]);
+      const res = await dbQuery('DELETE FROM "irUser" WHERE id = $1 RETURNING *', [id]);
       const r = res.rows[0];
       if (!r) return null;
       return {
@@ -79,8 +82,8 @@ const realDbHandlers = {
       const sql = `
         SELECT p.*, 
                u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole"
-        FROM "ResearchProject" p
-        LEFT JOIN "User" u ON p."leaderId" = u.id
+        FROM "irResearchProject" p
+        LEFT JOIN "irUser" u ON p."leaderId" = u.id
         ORDER BY p."createdAt" DESC
       `;
       const res = await dbQuery(sql);
@@ -111,8 +114,8 @@ const realDbHandlers = {
       const sql = `
         SELECT p.*, 
                u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole"
-        FROM "ResearchProject" p
-        LEFT JOIN "User" u ON p."leaderId" = u.id
+        FROM "irResearchProject" p
+        LEFT JOIN "irUser" u ON p."leaderId" = u.id
         WHERE p.id = $1
       `;
       const res = await dbQuery(sql, [id]);
@@ -144,7 +147,7 @@ const realDbHandlers = {
     create: async (data: any) => {
       const id = data.id || crypto.randomUUID();
       const sql = `
-        INSERT INTO "ResearchProject" (
+        INSERT INTO "irResearchProject" (
           id, title, status, "budgetInitial", "budgetSpent", 
           "startDate", "endDate", "ceuConsultDate", "irbNo", 
           "approvedDate", department, "leaderId", "createdAt", "updatedAt"
@@ -165,7 +168,7 @@ const realDbHandlers = {
       return realDbHandlers.projects.findUnique(res.rows[0].id);
     },
     update: async (id: string, data: any) => {
-      const currentRes = await dbQuery('SELECT * FROM "ResearchProject" WHERE id = $1', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irResearchProject" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Project not found');
 
@@ -182,7 +185,7 @@ const realDbHandlers = {
       const leaderId = data.leaderId !== undefined ? data.leaderId : current.leaderId;
 
       await dbQuery(`
-        UPDATE "ResearchProject" SET
+        UPDATE "irResearchProject" SET
           title = $1, status = $2, "budgetInitial" = $3, "budgetSpent" = $4,
           "startDate" = $5, "endDate" = $6, "ceuConsultDate" = $7, "irbNo" = $8,
           "approvedDate" = $9, department = $10, "leaderId" = $11, "updatedAt" = NOW()
@@ -193,7 +196,7 @@ const realDbHandlers = {
       return realDbHandlers.projects.findUnique(id);
     },
     delete: async (id: string) => {
-      const res = await dbQuery('DELETE FROM "ResearchProject" WHERE id = $1 RETURNING *', [id]);
+      const res = await dbQuery('DELETE FROM "irResearchProject" WHERE id = $1 RETURNING *', [id]);
       return res.rows[0];
     }
   },
@@ -203,9 +206,9 @@ const realDbHandlers = {
         SELECT pub.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
                u.name as "authorName", u.email as "authorEmail", u.role as "authorRole"
-        FROM "Publication" pub
-        LEFT JOIN "ResearchProject" p ON pub."projectId" = p.id
-        LEFT JOIN "User" u ON pub."authorId" = u.id
+        FROM "irPublication" pub
+        LEFT JOIN "irResearchProject" p ON pub."projectId" = p.id
+        LEFT JOIN "irUser" u ON pub."authorId" = u.id
         ORDER BY pub."createdAt" DESC
       `;
       const res = await dbQuery(sql);
@@ -245,9 +248,9 @@ const realDbHandlers = {
         SELECT pub.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
                u.name as "authorName", u.email as "authorEmail", u.role as "authorRole"
-        FROM "Publication" pub
-        LEFT JOIN "ResearchProject" p ON pub."projectId" = p.id
-        LEFT JOIN "User" u ON pub."authorId" = u.id
+        FROM "irPublication" pub
+        LEFT JOIN "irResearchProject" p ON pub."projectId" = p.id
+        LEFT JOIN "irUser" u ON pub."authorId" = u.id
         WHERE pub.id = $1
       `;
       const res = await dbQuery(sql, [id]);
@@ -287,7 +290,7 @@ const realDbHandlers = {
     create: async (data: any) => {
       const id = data.id || crypto.randomUUID();
       const sql = `
-        INSERT INTO "Publication" (
+        INSERT INTO "irPublication" (
           id, title, journal, quartile, "rewardStatus", 
           "rewardAmount", status, "projectId", "authorId", 
           "createdAt", "updatedAt"
@@ -302,7 +305,7 @@ const realDbHandlers = {
       return realDbHandlers.publications.findUnique(res.rows[0].id);
     },
     update: async (id: string, data: any) => {
-      const currentRes = await dbQuery('SELECT * FROM "Publication" WHERE id = $1', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irPublication" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Publication not found');
 
@@ -316,7 +319,7 @@ const realDbHandlers = {
       const authorId = data.authorId !== undefined ? data.authorId : current.authorId;
 
       await dbQuery(`
-        UPDATE "Publication" SET
+        UPDATE "irPublication" SET
           title = $1, journal = $2, quartile = $3, "rewardStatus" = $4,
           "rewardAmount" = $5, status = $6, "projectId" = $7, "authorId" = $8,
           "updatedAt" = NOW()
@@ -327,7 +330,7 @@ const realDbHandlers = {
       return realDbHandlers.publications.findUnique(id);
     },
     delete: async (id: string) => {
-      const res = await dbQuery('DELETE FROM "Publication" WHERE id = $1 RETURNING *', [id]);
+      const res = await dbQuery('DELETE FROM "irPublication" WHERE id = $1 RETURNING *', [id]);
       return res.rows[0];
     }
   },
@@ -337,9 +340,9 @@ const realDbHandlers = {
         SELECT pres.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
                u.name as "presenterName", u.email as "presenterEmail", u.role as "presenterRole"
-        FROM "Presentation" pres
-        LEFT JOIN "ResearchProject" p ON pres."projectId" = p.id
-        LEFT JOIN "User" u ON pres."presenterId" = u.id
+        FROM "irPresentation" pres
+        LEFT JOIN "irResearchProject" p ON pres."projectId" = p.id
+        LEFT JOIN "irUser" u ON pres."presenterId" = u.id
         ORDER BY pres."createdAt" DESC
       `;
       const res = await dbQuery(sql);
@@ -377,9 +380,9 @@ const realDbHandlers = {
         SELECT pres.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
                u.name as "presenterName", u.email as "presenterEmail", u.role as "presenterRole"
-        FROM "Presentation" pres
-        LEFT JOIN "ResearchProject" p ON pres."projectId" = p.id
-        LEFT JOIN "User" u ON pres."presenterId" = u.id
+        FROM "irPresentation" pres
+        LEFT JOIN "irResearchProject" p ON pres."projectId" = p.id
+        LEFT JOIN "irUser" u ON pres."presenterId" = u.id
         WHERE pres.id = $1
       `;
       const res = await dbQuery(sql, [id]);
@@ -417,7 +420,7 @@ const realDbHandlers = {
     create: async (data: any) => {
       const id = data.id || crypto.randomUUID();
       const sql = `
-        INSERT INTO "Presentation" (
+        INSERT INTO "irPresentation" (
           id, title, conference, type, status, "projectId", 
           "presenterId", "createdAt", "updatedAt"
         )
@@ -431,7 +434,7 @@ const realDbHandlers = {
       return realDbHandlers.presentations.findUnique(res.rows[0].id);
     },
     update: async (id: string, data: any) => {
-      const currentRes = await dbQuery('SELECT * FROM "Presentation" WHERE id = $1', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irPresentation" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Presentation not found');
 
@@ -443,7 +446,7 @@ const realDbHandlers = {
       const presenterId = data.presenterId !== undefined ? data.presenterId : current.presenterId;
 
       await dbQuery(`
-        UPDATE "Presentation" SET
+        UPDATE "irPresentation" SET
           title = $1, conference = $2, type = $3, status = $4,
           "projectId" = $5, "presenterId" = $6, "updatedAt" = NOW()
         WHERE id = $7
@@ -453,7 +456,7 @@ const realDbHandlers = {
       return realDbHandlers.presentations.findUnique(id);
     },
     delete: async (id: string) => {
-      const res = await dbQuery('DELETE FROM "Presentation" WHERE id = $1 RETURNING *', [id]);
+      const res = await dbQuery('DELETE FROM "irPresentation" WHERE id = $1 RETURNING *', [id]);
       return res.rows[0];
     }
   },
@@ -463,9 +466,9 @@ const realDbHandlers = {
         SELECT c.*, 
                a.name as "advisorName", a.email as "advisorEmail", a.role as "advisorRole",
                r.name as "requesterName", r.email as "requesterEmail", r.role as "requesterRole"
-        FROM "Consultation" c
-        LEFT JOIN "User" a ON c."advisorId" = a.id
-        LEFT JOIN "User" r ON c."requesterId" = r.id
+        FROM "irConsultation" c
+        LEFT JOIN "irUser" a ON c."advisorId" = a.id
+        LEFT JOIN "irUser" r ON c."requesterId" = r.id
         ORDER BY c."appointmentTime" ASC
       `;
       const res = await dbQuery(sql);
@@ -497,9 +500,9 @@ const realDbHandlers = {
         SELECT c.*, 
                a.name as "advisorName", a.email as "advisorEmail", a.role as "advisorRole",
                r.name as "requesterName", r.email as "requesterEmail", r.role as "requesterRole"
-        FROM "Consultation" c
-        LEFT JOIN "User" a ON c."advisorId" = a.id
-        LEFT JOIN "User" r ON c."requesterId" = r.id
+        FROM "irConsultation" c
+        LEFT JOIN "irUser" a ON c."advisorId" = a.id
+        LEFT JOIN "irUser" r ON c."requesterId" = r.id
         WHERE c.id = $1
       `;
       const res = await dbQuery(sql, [id]);
@@ -531,7 +534,7 @@ const realDbHandlers = {
     create: async (data: any) => {
       const id = data.id || crypto.randomUUID();
       const sql = `
-        INSERT INTO "Consultation" (
+        INSERT INTO "irConsultation" (
           id, type, "appointmentTime", status, "advisorId", 
           "requesterId", "createdAt", "updatedAt"
         )
@@ -545,7 +548,7 @@ const realDbHandlers = {
       return realDbHandlers.consultations.findUnique(res.rows[0].id);
     },
     update: async (id: string, data: any) => {
-      const currentRes = await dbQuery('SELECT * FROM "Consultation" WHERE id = $1', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irConsultation" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Consultation not found');
 
@@ -556,7 +559,7 @@ const realDbHandlers = {
       const requesterId = data.requesterId !== undefined ? data.requesterId : current.requesterId;
 
       await dbQuery(`
-        UPDATE "Consultation" SET
+        UPDATE "irConsultation" SET
           type = $1, "appointmentTime" = $2, status = $3,
           "advisorId" = $4, "requesterId" = $5, "updatedAt" = NOW()
         WHERE id = $6
@@ -566,11 +569,12 @@ const realDbHandlers = {
       return realDbHandlers.consultations.findUnique(id);
     },
     delete: async (id: string) => {
-      const res = await dbQuery('DELETE FROM "Consultation" WHERE id = $1 RETURNING *', [id]);
+      const res = await dbQuery('DELETE FROM "irConsultation" WHERE id = $1 RETURNING *', [id]);
       return res.rows[0];
     }
   }
 };
 
-// Export real database handlers directly as apiDb
-export const apiDb = realDbHandlers;
+// Export mock database handlers directly as apiDb
+export const apiDb = mockDb;
+

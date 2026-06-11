@@ -1,11 +1,26 @@
 import { NextResponse } from 'next/server';
 import { dbQuery } from '@/lib/db';
+import { isMock } from '@/lib/apiDb';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export async function GET() {
   const start = Date.now();
   
+  if (isMock) {
+    return NextResponse.json({
+      status: 'success',
+      isMock: true,
+      connectionType: 'Mock JSON Database (In-Memory)',
+      host: 'Localhost (Mock)',
+      databaseName: 'mock-db.json',
+      latencyMs: Date.now() - start,
+      dbVersion: 'MockDB Engine v1.0',
+      dbTime: new Date().toISOString(),
+      maskedConnectionString: 'mock://localhost/mock-db.json',
+    });
+  }
+
   let hyperdriveStr = null;
 
   try {
@@ -76,3 +91,4 @@ export async function GET() {
     });
   }
 }
+
