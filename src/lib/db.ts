@@ -1,59 +1,32 @@
-let poolPromise: Promise<any> | null = null;
-
-async function getPool() {
-  if (poolPromise) return poolPromise;
+export async function dbQuery(text: string, params?: any[]) {
+  console.log(`[D1 DB] Executing query: ${text.slice(0, 100)}...`);
+  const start = Date.now();
   
-  let connectionString = process.env.DATABASE_URL;
-  let connectionType = 'Direct PostgreSQL';
-
+  // Try to fetch Cloudflare D1 database context
+  let d1: any = null;
   try {
     const { getRequestContext } = await import('@cloudflare/next-on-pages');
     const ctx = getRequestContext();
-    if (ctx && ctx.env && (ctx.env as any).HYPERDRIVE) {
-      connectionString = (ctx.env as any).HYPERDRIVE.connectionString || (ctx.env as any).HYPERDRIVE;
-      connectionType = 'Cloudflare Hyperdrive';
+    if (ctx && ctx.env && (ctx.env as any).DB) {
+      d1 = (ctx.env as any).DB;
     }
   } catch (e) {
     // Fail silently when not in Cloudflare environment
   }
 
-  const isMock = !connectionString || 
-                 connectionString.includes('localhost:51213') || 
-                 connectionString.startsWith('prisma+postgres://') || 
-                 connectionString.startsWith('mock:');
-
-  poolPromise = (async () => {
-    if (!isMock && connectionString) {
-      console.log(`[DB] Initializing pool using: ${connectionType}`);
-      const pg = await import('pg');
-      const hasSsl = connectionString.includes('sslmode=require') || connectionString.includes('ssl=true');
-      return new pg.default.Pool({
-        connectionString,
-        max: 2,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 30000,
-        ssl: hasSsl ? { rejectUnauthorized: false } : undefined
-      });
-    }
-    return null;
-  })();
-  
-  return poolPromise;
-}
-
-export async function dbQuery(text: string, params?: any[]) {
-  console.log(`[DB] Executing query: ${text.slice(0, 100)}...`);
-  const start = Date.now();
-  try {
-    const pool = await getPool();
-    if (!pool) {
-      throw new Error('Database pool is not initialized. Ensure DATABASE_URL or HYPERDRIVE is set.');
-    }
-    const res = await pool.query(text, params);
-    console.log(`[DB] Query success in ${Date.now() - start}ms`);
-    return res;
-  } catch (err) {
-    console.error(`[DB] Query failed after ${Date.now() - start}ms:`, err);
-    throw err;
+  if (!d1) {
+    throw new Error('Cloudflare D1 is not available. Please run in Cloudflare Pages/Workers environment.');
   }
+
+  // Convert PostgreSQL parameters ($1, $2) to SQLite parameter format (?1, ?2)
+  const sqliteSql = text.replace(/\$(\d+)/g, '?$1');
+  
+  const statement = d1.prepare(sqliteSql);
+  const boundStatement = params && params.length > 0 ? statement.bind(...params) : statement;
+  const result = await boundStatement.all();
+  
+  console.log(`[D1 DB] Query success in ${Date.now() - start}ms`);
+  return {
+    rows: result.results || []
+  };
 }

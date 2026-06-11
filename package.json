@@ -6,13 +6,13 @@
     "dev": "next dev",
     "build": "node switch-runtime.js edge && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "git-status": "git status",
+    "git-commit-push": "git add -A && git commit -m \"Clean database system: migrate fully to Cloudflare D1\" && git push"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
     "next": "14.2.23",
-    "pg": "^8.21.0",
-    "postgres": "^3.4.9",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -20,7 +20,6 @@
     "@cloudflare/next-on-pages": "^1.13.16",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/pg": "^8.20.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^9",

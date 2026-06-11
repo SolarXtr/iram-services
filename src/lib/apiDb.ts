@@ -1,8 +1,16 @@
 import { mockDb } from './mockDb';
 import { dbQuery } from './db';
+import { getRequestContext } from '@cloudflare/next-on-pages';
 
-// Helper to determine if we should report mock status - always true since we reverted to mock data
-export const isMock = true;
+// Helper to determine if we should report mock status dynamically
+export const getIsMock = () => {
+  try {
+    const ctx = getRequestContext();
+    return !(ctx && ctx.env && (ctx.env as any).DB);
+  } catch (e) {
+    return true;
+  }
+};
 
 
 
@@ -35,7 +43,7 @@ const realDbHandlers = {
     create: async (data: any) => {
       const id = data.id || crypto.randomUUID();
       const res = await dbQuery(
-        'INSERT INTO "irUser" (id, name, email, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *',
+        'INSERT INTO "irUser" (id, name, email, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
         [id, data.name, data.email, data.role]
       );
       const r = res.rows[0];
@@ -56,7 +64,7 @@ const realDbHandlers = {
       const role = data.role !== undefined ? data.role : current.role;
 
       const res = await dbQuery(
-        'UPDATE "irUser" SET name = $1, email = $2, role = $3, "updatedAt" = NOW() WHERE id = $4 RETURNING *',
+        'UPDATE "irUser" SET name = $1, email = $2, role = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
         [name, email, role, id]
       );
       const r = res.rows[0];
@@ -152,7 +160,7 @@ const realDbHandlers = {
           "startDate", "endDate", "ceuConsultDate", "irbNo", 
           "approvedDate", department, "leaderId", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
@@ -188,7 +196,7 @@ const realDbHandlers = {
         UPDATE "irResearchProject" SET
           title = $1, status = $2, "budgetInitial" = $3, "budgetSpent" = $4,
           "startDate" = $5, "endDate" = $6, "ceuConsultDate" = $7, "irbNo" = $8,
-          "approvedDate" = $9, department = $10, "leaderId" = $11, "updatedAt" = NOW()
+          "approvedDate" = $9, department = $10, "leaderId" = $11, "updatedAt" = CURRENT_TIMESTAMP
         WHERE id = $12
       `, [
         title, status, budgetInitial, budgetSpent, startDate, endDate, ceuConsultDate, irbNo, approvedDate, department, leaderId, id
@@ -295,7 +303,7 @@ const realDbHandlers = {
           "rewardAmount", status, "projectId", "authorId", 
           "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
@@ -322,7 +330,7 @@ const realDbHandlers = {
         UPDATE "irPublication" SET
           title = $1, journal = $2, quartile = $3, "rewardStatus" = $4,
           "rewardAmount" = $5, status = $6, "projectId" = $7, "authorId" = $8,
-          "updatedAt" = NOW()
+          "updatedAt" = CURRENT_TIMESTAMP
         WHERE id = $9
       `, [
         title, journal, quartile, rewardStatus, rewardAmount, status, projectId || null, authorId, id
@@ -424,7 +432,7 @@ const realDbHandlers = {
           id, title, conference, type, status, "projectId", 
           "presenterId", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
@@ -448,7 +456,7 @@ const realDbHandlers = {
       await dbQuery(`
         UPDATE "irPresentation" SET
           title = $1, conference = $2, type = $3, status = $4,
-          "projectId" = $5, "presenterId" = $6, "updatedAt" = NOW()
+          "projectId" = $5, "presenterId" = $6, "updatedAt" = CURRENT_TIMESTAMP
         WHERE id = $7
       `, [
         title, conference, type, status, projectId || null, presenterId, id
@@ -538,7 +546,7 @@ const realDbHandlers = {
           id, type, "appointmentTime", status, "advisorId", 
           "requesterId", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
@@ -561,7 +569,7 @@ const realDbHandlers = {
       await dbQuery(`
         UPDATE "irConsultation" SET
           type = $1, "appointmentTime" = $2, status = $3,
-          "advisorId" = $4, "requesterId" = $5, "updatedAt" = NOW()
+          "advisorId" = $4, "requesterId" = $5, "updatedAt" = CURRENT_TIMESTAMP
         WHERE id = $6
       `, [
         type, appointmentTime, status, advisorId, requesterId, id
@@ -575,6 +583,19 @@ const realDbHandlers = {
   }
 };
 
-// Export mock database handlers directly as apiDb
-export const apiDb = mockDb;
-
+// Export apiDb as a Proxy to dynamically select the handler based on environment
+export const apiDb = new Proxy({} as any, {
+  get(target, prop) {
+    let d1 = null;
+    try {
+      const ctx = getRequestContext();
+      if (ctx && ctx.env && (ctx.env as any).DB) {
+        d1 = (ctx.env as any).DB;
+      }
+    } catch (e) {
+      // Ignore
+    }
+    const handler = d1 ? realDbHandlers : mockDb;
+    return (handler as any)[prop];
+  }
+});

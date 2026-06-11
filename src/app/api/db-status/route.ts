@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { dbQuery } from '@/lib/db';
-import { isMock } from '@/lib/apiDb';
+import { getIsMock } from '@/lib/apiDb';
 
 export const runtime = 'edge';
 
 export async function GET() {
   const start = Date.now();
+  const isMock = getIsMock();
   
   if (isMock) {
     return NextResponse.json({
@@ -21,74 +22,33 @@ export async function GET() {
     });
   }
 
-  let hyperdriveStr = null;
-
   try {
-    const { getRequestContext } = await import('@cloudflare/next-on-pages');
-    const ctx = getRequestContext();
-    if (ctx && ctx.env && (ctx.env as any).HYPERDRIVE) {
-      hyperdriveStr = (ctx.env as any).HYPERDRIVE.connectionString || (ctx.env as any).HYPERDRIVE;
-    }
-  } catch (e) {
-    // Fail silently when not in Cloudflare environment
-  }
-
-  const dbUrlStr = process.env.DATABASE_URL;
-  const rawConnStr = hyperdriveStr || dbUrlStr || '';
-  
-  let connectionType = 'Direct PostgreSQL (Cloud SQL)';
-  if (hyperdriveStr) {
-    connectionType = 'Cloudflare Hyperdrive (Proxy)';
-  } else if (!dbUrlStr) {
-    connectionType = 'None (Not Configured)';
-  }
-  
-  let maskedConnStr = '';
-  let host = '';
-  let dbName = '';
-  
-  if (rawConnStr) {
-    try {
-      // Handle different formats
-      const cleanStr = rawConnStr.startsWith('postgresql://') || rawConnStr.startsWith('postgres://') 
-        ? rawConnStr 
-        : `postgresql://${rawConnStr}`;
-      const parsedUrl = new URL(cleanStr);
-      host = parsedUrl.host;
-      dbName = parsedUrl.pathname.replace(/^\//, '').split('?')[0];
-      maskedConnStr = `${parsedUrl.protocol}//${parsedUrl.username}:******@${parsedUrl.host}${parsedUrl.pathname.split('?')[0]}`;
-    } catch (e) {
-      maskedConnStr = 'Unparseable Connection String';
-    }
-  }
-
-  try {
-    const res = await dbQuery('SELECT version(), NOW()');
+    // Test Cloudflare D1 connection with a simple query
+    await dbQuery('SELECT 1');
     const latency = Date.now() - start;
     
     return NextResponse.json({
       status: 'success',
       isMock: false,
-      connectionType,
-      host,
-      databaseName: dbName,
+      connectionType: 'Cloudflare D1 Database',
+      host: 'Cloudflare Edge Network',
+      databaseName: 'iram-db',
       latencyMs: latency,
-      dbVersion: res.rows[0].version,
-      dbTime: res.rows[0].now,
-      maskedConnectionString: maskedConnStr,
+      dbVersion: 'SQLite (D1)',
+      dbTime: new Date().toISOString(),
+      maskedConnectionString: 'd1://iram-db',
     });
   } catch (err: any) {
     const latency = Date.now() - start;
     return NextResponse.json({
       status: 'error',
-      isMock: true,
-      connectionType,
-      host,
-      databaseName: dbName,
+      isMock: false,
+      connectionType: 'Cloudflare D1 Database',
+      host: 'Cloudflare Edge Network',
+      databaseName: 'iram-db',
       latencyMs: latency,
       error: err.message || err.toString(),
-      maskedConnectionString: maskedConnStr,
+      maskedConnectionString: 'd1://iram-db',
     });
   }
 }
-

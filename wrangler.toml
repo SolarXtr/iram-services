@@ -10,10 +10,8 @@ no_bundle = true
 [assets]
 directory = ".vercel/output/static"
 
-[vars]
-DATABASE_URL = "postgresql://postgres:pwd4Iram!@34.87.77.36:5432/iram_services_db?sslmode=require&schema=public"
+[[d1_databases]]
+binding = "DB"
+database_name = "iram-db"
+database_id = "d813fc54-881b-47b0-b6a0-6774afe3cf2f"
 
-[[hyperdrive]]
-binding = "HYPERDRIVE"
-id = "63e0b5204537429b816287decb41c4e2"
-localConnectionString = "postgresql://postgres:pwd4Iram!@34.87.77.36:5432/iram_services_db?sslmode=require&schema=public"
