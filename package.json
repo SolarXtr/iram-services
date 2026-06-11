@@ -7,8 +7,7 @@
     "build": "node switch-runtime.js edge && next build",
     "start": "next start",
     "lint": "eslint",
-    "git-status": "git status",
-    "git-commit-push": "git add -A && git commit -m \"Clean database system: migrate fully to Cloudflare D1\" && git push"
+    "git-push": "git commit -am \"Cleanup package.json helpers\" && git push"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
