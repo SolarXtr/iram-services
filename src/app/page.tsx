@@ -19,7 +19,8 @@ import {
   ChevronRight, 
   Clock, 
   RefreshCw,
-  UserCheck
+  UserCheck,
+  Database
 } from 'lucide-react';
 
 // Types matching mockDb / Prisma
@@ -71,7 +72,7 @@ interface Consultation {
 
 export default function ResearchManagementDashboard() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations' | 'db-status'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations' | 'db-status' | 'db-explorer'>('dashboard');
   const [currentRole, setCurrentRole] = useState<'RESEARCHER' | 'STAFF' | 'EXECUTIVE'>('STAFF');
 
   // Data States
@@ -89,6 +90,16 @@ export default function ResearchManagementDashboard() {
     databaseName: '',
     latencyMs: 0
   });
+
+  // DB Explorer States
+  const [explorerData, setExplorerData] = useState<any>({
+    tables: [],
+    schema: [],
+    activeTable: 'irUser',
+    tableData: []
+  });
+  const [selectedExplorerTable, setSelectedExplorerTable] = useState('irUser');
+  const [loadingExplorer, setLoadingExplorer] = useState(false);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -194,10 +205,30 @@ export default function ResearchManagementDashboard() {
     }
   }, []);
 
+  const fetchExplorerData = useCallback(async (tableName: string) => {
+    setLoadingExplorer(true);
+    try {
+      const res = await fetch(`/api/db-explorer?table=${tableName}`).then((r) => r.json());
+      if (res && res.status === 'success') {
+        setExplorerData(res);
+      }
+    } catch (e) {
+      console.error('Error fetching explorer data:', e);
+    } finally {
+      setLoadingExplorer(false);
+    }
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (activeTab === 'db-explorer') {
+      fetchExplorerData(selectedExplorerTable);
+    }
+  }, [activeTab, selectedExplorerTable, fetchExplorerData]);
 
   // Format Helper
   const formatCurrency = (val: number) => {
@@ -564,6 +595,18 @@ export default function ResearchManagementDashboard() {
               <RefreshCw className="h-5 w-5" />
               <span>สถานะคลาวด์เดสเก็ต (DB Status)</span>
             </button>
+
+            <button
+              onClick={() => { setActiveTab('db-explorer'); setSearchQuery(''); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === 'db-explorer'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
+              }`}
+            >
+              <Database className="h-5 w-5" />
+              <span>สำรวจฐานข้อมูล (DB Explorer)</span>
+            </button>
           </nav>
         </div>
 
@@ -592,6 +635,8 @@ export default function ResearchManagementDashboard() {
               {activeTab === 'projects' && 'โครงการวิจัยและงบประมาณ'}
               {activeTab === 'publications' && 'งานวิจัยตีพิมพ์และสิทธิ์รับรางวัล'}
               {activeTab === 'consultations' && 'ระบบจองคิวคำปรึกษา CEU'}
+              {activeTab === 'db-status' && 'สถานะการเชื่อมต่อฐานข้อมูล'}
+              {activeTab === 'db-explorer' && 'เครื่องมือสำรวจฐานข้อมูลออนไลน์ (Database Explorer)'}
             </h2>
             {loading && <RefreshCw className="h-4 w-4 animate-spin text-[#8a786c]" />}
           </div>
@@ -842,6 +887,135 @@ export default function ResearchManagementDashboard() {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DB Explorer Section */}
+          {activeTab === 'db-explorer' && (
+            <div className="space-y-6">
+              {/* Tables selection grid and meta info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Left panel: List of tables */}
+                <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl shadow-lg md:col-span-1 space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#ebdccf] pb-3">
+                    <h3 className="text-base font-bold text-[#3c2f25] flex items-center gap-2">
+                      <Database className="h-5 w-5 text-[#b45309]" />
+                      <span>รายการตาราง (Tables)</span>
+                    </h3>
+                    {loadingExplorer && <RefreshCw className="h-4 w-4 animate-spin text-[#8a786c]" />}
+                  </div>
+                  
+                  <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                    {explorerData.tables && explorerData.tables.map((t: any) => (
+                      <button
+                        key={t.name}
+                        onClick={() => setSelectedExplorerTable(t.name)}
+                        className={`w-full flex items-center justify-between p-3.5 rounded-xl text-left border transition-all text-xs font-semibold ${
+                          selectedExplorerTable === t.name
+                            ? 'bg-[#d97706]/15 border-[#d97706] text-[#3c2f25]'
+                            : 'bg-[#f9f5ee]/40 border-[#ebdccf] text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
+                        }`}
+                      >
+                        <span className="font-mono">{t.name}</span>
+                        <span className="bg-[#f9f5ee] border border-[#ebdccf] px-2 py-0.5 rounded-full text-[10px] text-[#4c3c31]">
+                          {t.rowCount} rows
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right panel: Selected Table Schema */}
+                <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl shadow-lg md:col-span-2 space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#ebdccf] pb-3">
+                    <h3 className="text-base font-bold text-[#3c2f25] flex items-center gap-2">
+                      <Layers className="h-5 w-5 text-[#b45309]" />
+                      <span>โครงสร้างตาราง (Schema - <span className="font-mono text-xs">{selectedExplorerTable}</span>)</span>
+                    </h3>
+                    <button
+                      onClick={() => fetchExplorerData(selectedExplorerTable)}
+                      className="p-1.5 hover:bg-[#f9f5ee] rounded-lg border border-[#ebdccf] text-[#7a685c] hover:text-[#3c2f25]"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto pr-1">
+                    {explorerData.schema && explorerData.schema.map((col: any) => (
+                      <div key={col.name} className="bg-[#f9f5ee]/50 border border-[#ebdccf] p-3 rounded-xl flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-[#3c2f25]">{col.name}</span>
+                          {col.pk && (
+                            <span className="bg-amber-600/10 text-amber-600 border border-amber-600/20 px-1.5 py-0.5 rounded-[4px] text-[9px] font-extrabold uppercase scale-90">
+                              PK
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-mono text-[#8a786c] text-[11px] uppercase">{col.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Rows List Section */}
+              <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl overflow-hidden shadow-xl">
+                <div className="p-5 border-b border-[#ebdccf] bg-[#fdfcf9] flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#3c2f25] flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-[#b45309]" />
+                    <span>ข้อมูลในตาราง (Records - <span className="font-mono text-xs">{selectedExplorerTable}</span>)</span>
+                  </h3>
+                  <span className="text-xs text-[#7a685c]">แสดงสูงสุด 100 แถวแรก</span>
+                </div>
+
+                <div className="overflow-x-auto max-h-[500px]">
+                  {explorerData.tableData && explorerData.tableData.length > 0 ? (
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-[#f9f5ee] border-b border-[#ebdccf] text-[#7a685c] font-semibold uppercase tracking-wider font-mono">
+                          {explorerData.schema && explorerData.schema.map((col: any) => (
+                            <th key={col.name} className="px-5 py-3.5 whitespace-nowrap">{col.name}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#ebdccf] font-mono text-[#4c3c31]">
+                        {explorerData.tableData.map((row: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-[#f9f5ee]/40 transition-colors">
+                            {explorerData.schema && explorerData.schema.map((col: any) => {
+                              const val = row[col.name];
+                              let displayVal = '';
+                              if (val === null || val === undefined) {
+                                displayVal = 'NULL';
+                              } else if (typeof val === 'object') {
+                                displayVal = JSON.stringify(val);
+                              } else {
+                                displayVal = String(val);
+                              }
+                              return (
+                                <td key={col.name} className="px-5 py-3 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" title={displayVal}>
+                                  {val === null || val === undefined ? (
+                                    <span className="text-[#a09085] italic">{displayVal}</span>
+                                  ) : (
+                                    <span className="text-[#3c2f25]">{displayVal}</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="p-12 text-center text-[#8a786c]">
+                      <FileText className="h-12 w-12 mx-auto text-[#ebdccf] mb-3" />
+                      <p className="text-sm font-semibold">ไม่มีรายการข้อมูลในตารางนี้</p>
+                      <p className="text-xs text-[#a09085] mt-1">ตารางว่างเปล่า หรือ ไม่พบข้อมูลในระบบ</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
