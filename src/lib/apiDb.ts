@@ -2,7 +2,11 @@ import { mockDb } from './mockDb';
 import { dbQuery } from './db';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 
-// Helper to determine if we should report mock status dynamically
+/**
+ * Determine if we should use Mock database
+ * Returns true when D1 is not available (development/local)
+ * Returns false when D1 is available (production on Cloudflare Pages/Workers)
+ */
 export const getIsMock = () => {
   try {
     const ctx = getRequestContext();
@@ -12,14 +16,13 @@ export const getIsMock = () => {
   }
 };
 
-
-
-// Date formatter helper to match ISO string formatting from Prisma
+// Date formatter helper to match ISO string formatting
 const toIsoString = (val: any) => {
   if (!val) return val;
   return new Date(val).toISOString();
 };
 
+// Database handlers for D1 (Production)
 const realDbHandlers = {
   users: {
     findMany: async () => {
@@ -54,7 +57,6 @@ const realDbHandlers = {
       };
     },
     update: async (id: string, data: any) => {
-      // Get current user to merge updates
       const currentRes = await dbQuery('SELECT * FROM "irUser" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('User not found');
@@ -583,7 +585,15 @@ const realDbHandlers = {
   }
 };
 
-// Export apiDb as a Proxy to dynamically select the handler based on environment
+/**
+ * Dynamic Proxy API Layer
+ * Automatically selects between Mock (development) and D1 (production) handlers
+ * 
+ * Usage:
+ *   const users = await apiDb.users.findMany();
+ *   const project = await apiDb.projects.findUnique(id);
+ *   const newUser = await apiDb.users.create({ name, email, role });
+ */
 export const apiDb = new Proxy({} as any, {
   get(target, prop) {
     let d1 = null;
@@ -593,8 +603,10 @@ export const apiDb = new Proxy({} as any, {
         d1 = (ctx.env as any).DB;
       }
     } catch (e) {
-      // Ignore
+      // Ignore - return mock db
     }
+    
+    // Use real DB handlers if D1 is available, otherwise use mockDb
     const handler = d1 ? realDbHandlers : mockDb;
     return (handler as any)[prop];
   }
