@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# iRAM-Services - Research Management System
 
-## Getting Started
+This is a [Next.js](https://nextjs.org) project for managing research projects, publications, presentations, and consultations.
 
-First, run the development server:
+## 🚀 Quick Start
+
+### Development (Local - Mock Database)
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The development environment uses **in-memory Mock data** - no database setup required!
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Production (Cloudflare D1)
 
-## Learn More
+```bash
+# Build for production
+npm run build
 
-To learn more about Next.js, take a look at the following resources:
+# Deploy to Cloudflare Pages
+npx @cloudflare/next-on-pages --skip-build
+npx wrangler deploy --no-bundle
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📊 Database Modes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The system supports **2 modes**:
 
-## Deploy on Vercel
+| Mode | Environment | Database | Status |
+|------|-------------|----------|--------|
+| **Mock** | Local / Development | In-memory JSON data | Ready for development |
+| **D1** | Production | Cloudflare D1 (SQLite) | Ready for production |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Switching Between Modes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**For Local Development (Mock - Default):**
+```bash
+npm run dev
+```
+
+**For Production on Cloudflare (D1):**
+```bash
+npm run build
+npx wrangler d1 execute iram-db --file=./d1-schema.sql --remote
+npx wrangler deploy --no-bundle
+```
+
+## 🗄️ Database Schema
+
+The system manages 5 main entities:
+
+1. **irUser** - Users (RESEARCHER, STAFF, EXECUTIVE)
+2. **irResearchProject** - Research projects with budget tracking
+3. **irPublication** - Research publications (journal, quartile, rewards)
+4. **irPresentation** - Conference presentations (ORAL, POSTER)
+5. **irConsultation** - Consultation appointments (PROTOCOL, STATISTICAL)
+
+## 🛠️ Available Scripts
+
+```bash
+# Development
+npm run dev          # Start dev server (Mock DB)
+
+# Production
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+
+# Database Management
+npx wrangler d1 execute iram-db --file=./d1-schema.sql --remote
+# Update D1 schema (when making changes to d1-schema.sql)
+```
+
+## 📝 Project Structure
+
+```
+src/
+├── app/
+│   ├── api/           # API routes
+│   ├── dashboard/     # Dashboard pages
+│   ├── my-workspace/  # User workspace
+│   ├── layout.tsx     # Root layout
+│   ├── page.tsx       # Main page
+│   └── globals.css    # Global styles
+└── lib/
+    ├── apiDb.ts       # Database abstraction layer (Mock/D1)
+    ├── db.ts          # D1 query execution
+    └── mockDb.ts      # Mock database implementation
+```
+
+## 🔄 API Layer Architecture
+
+The `apiDb` Proxy dynamically selects the appropriate database handler:
+
+```typescript
+// Works the same in both Mock and D1 environments
+const users = await apiDb.users.findMany();
+const project = await apiDb.projects.findUnique(projectId);
+const newProject = await apiDb.projects.create(projectData);
+```
+
+## 🔒 No External Dependencies
+
+- ✅ **No PostgreSQL needed** - Mock data in development
+- ✅ **No environment setup** - Works out of the box locally
+- ✅ **Type-safe** - Full TypeScript support
+- ✅ **Seamless scaling** - Switch to D1 for production
+
+## 📚 Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Cloudflare D1](https://developers.cloudflare.com/d1/)
+- [TypeScript Documentation](https://www.typescriptlang.org/)
+
+## 🚢 Deploy on Cloudflare
+
+```bash
+# Build the application
+npm run build
+
+# Deploy to Cloudflare Pages
+npx wrangler deploy --no-bundle
+```
+
+For more details, check the [deployment documentation](https://developers.cloudflare.com/workers/platform/deploy/).
