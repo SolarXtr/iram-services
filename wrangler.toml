@@ -4,11 +4,16 @@ compatibility_flags = [ "nodejs_compat" ]
 main = ".vercel/output/static/_worker.js/index.js"
 no_bundle = true
 
-
-
-
 [assets]
 directory = ".vercel/output/static"
+
+[[rules]]
+type = "ESModule"
+globs = ["__next-on-pages-dist__/**/*.js", "__next-on-pages-dist__/**/*.mjs"]
+
+[[rules]]
+type = "Data"
+globs = ["__next-on-pages-dist__/**/*.bin", "__next-on-pages-dist__/**/*.json"]
 
 [[d1_databases]]
 binding = "DB"
