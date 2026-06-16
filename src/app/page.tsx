@@ -478,7 +478,7 @@ export default function ResearchManagementDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-[#f9f5ee] text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#f9f5ee] text-[#3c2f25] overflow-hidden font-sans">
       {/* Sidebar Panel */}
       <aside className="w-72 bg-[#fdfcf9] border-r border-[#ebdccf] flex flex-col justify-between shrink-0">
         <div>
@@ -487,7 +487,7 @@ export default function ResearchManagementDashboard() {
               <Layers className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">iRAM Services</h1>
+              <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-[#3c2f25] to-[#7a685c] bg-clip-text text-transparent">iRAM Services</h1>
               <p className="text-[10px] text-[#b45309] font-semibold tracking-widest uppercase">Research System</p>
             </div>
           </div>
@@ -495,70 +495,70 @@ export default function ResearchManagementDashboard() {
           <nav className="p-4 space-y-1">
             <button
               onClick={() => { setActiveTab('dashboard'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'dashboard'
-                  ? 'bg-[#d97706] text-[#3c2f25] shadow-lg shadow-indigo-500/10'
-                  : 'text-[#7a685c] hover:bg-[#f9f5ee] hover:text-slate-100'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
               }`}
             >
               <TrendingUp className="h-5 w-5" />
               <span>สรุปภาพรวมแดชบอร์ด</span>
             </button>
-
+ 
             <button
               onClick={() => { setActiveTab('projects'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'projects'
-                  ? 'bg-[#d97706] text-[#3c2f25] shadow-lg shadow-indigo-500/10'
-                  : 'text-[#7a685c] hover:bg-[#f9f5ee] hover:text-slate-100'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
               }`}
             >
               <FileText className="h-5 w-5" />
               <span>โครงการวิจัย</span>
             </button>
-
+ 
             <button
               onClick={() => { setActiveTab('publications'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'publications'
-                  ? 'bg-[#d97706] text-[#3c2f25] shadow-lg shadow-indigo-500/10'
-                  : 'text-[#7a685c] hover:bg-[#f9f5ee] hover:text-slate-100'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
               }`}
             >
               <BookOpen className="h-5 w-5" />
               <span>บทความวิชาการ (Publications)</span>
             </button>
-
+ 
             <button
               onClick={() => { setActiveTab('consultations'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'consultations'
-                  ? 'bg-[#d97706] text-[#3c2f25] shadow-lg shadow-indigo-500/10'
-                  : 'text-[#7a685c] hover:bg-[#f9f5ee] hover:text-slate-100'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
               }`}
             >
               <Calendar className="h-5 w-5" />
               <span>การให้คำปรึกษา (CEU)</span>
             </button>
-
+ 
             <button
               onClick={() => { setActiveTab('users'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'users'
-                  ? 'bg-[#d97706] text-[#3c2f25] shadow-lg shadow-indigo-500/10'
-                  : 'text-[#7a685c] hover:bg-[#f9f5ee] hover:text-slate-100'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
               }`}
             >
               <Users className="h-5 w-5" />
               <span>บริหารข้อมูลผู้ใช้ (Users)</span>
             </button>
-
+ 
             <button
               onClick={() => { setActiveTab('db-status'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === 'db-status'
-                  ? 'bg-[#d97706] text-[#3c2f25] shadow-lg shadow-indigo-500/10'
-                  : 'text-[#7a685c] hover:bg-[#f9f5ee] hover:text-slate-100'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
               }`}
             >
               <RefreshCw className="h-5 w-5" />
@@ -574,7 +574,7 @@ export default function ResearchManagementDashboard() {
             <div className="flex items-center gap-2 mt-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
               <span className="text-xs font-medium text-[#4c3c31]">
-                {isDbMock ? 'Local JSON Store (Mock)' : 'PostgreSQL (Cloud SQL)'}
+                {isDbMock ? 'Local JSON Store (Mock)' : 'Cloudflare D1 Database'}
               </span>
             </div>
           </div>

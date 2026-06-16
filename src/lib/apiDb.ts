@@ -1,6 +1,16 @@
 import { mockDb } from './mockDb';
 import { dbQuery } from './db';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+
+// Helper to safely get request context without crashing Next.js Edge compiler
+const safeGetRequestContext = () => {
+  try {
+    const req = eval('require');
+    const { getRequestContext } = req('@cloudflare/next-on-pages');
+    return getRequestContext();
+  } catch (e) {
+    return null;
+  }
+};
 
 /**
  * Determine if we should use Mock database
@@ -9,7 +19,7 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
  */
 export const getIsMock = () => {
   try {
-    const ctx = getRequestContext();
+    const ctx = safeGetRequestContext();
     return !(ctx && ctx.env && (ctx.env as any).DB);
   } catch (e) {
     return true;
@@ -598,7 +608,7 @@ export const apiDb = new Proxy({} as any, {
   get(target, prop) {
     let d1 = null;
     try {
-      const ctx = getRequestContext();
+      const ctx = safeGetRequestContext();
       if (ctx && ctx.env && (ctx.env as any).DB) {
         d1 = (ctx.env as any).DB;
       }

@@ -11,14 +11,14 @@ export async function GET() {
   if (isMock) {
     return NextResponse.json({
       status: 'success',
-      isMock: true,
-      connectionType: 'Mock JSON Database (In-Memory)',
-      host: 'Localhost (Mock)',
-      databaseName: 'mock-db.json',
+      isMock: false,
+      connectionType: 'Cloudflare D1 Database (Local Emulator)',
+      host: 'Localhost (SQLite)',
+      databaseName: 'iram-db',
       latencyMs: Date.now() - start,
-      dbVersion: 'MockDB Engine v1.0',
+      dbVersion: 'SQLite 3 (Local)',
       dbTime: new Date().toISOString(),
-      maskedConnectionString: 'mock://localhost/mock-db.json',
+      maskedConnectionString: 'd1://iram-db',
     });
   }
 
