@@ -526,7 +526,7 @@ export default function ResearchManagementDashboard() {
           <nav className="p-4 space-y-1">
             <button
               onClick={() => { setActiveTab('dashboard'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
                 activeTab === 'dashboard'
                   ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
                   : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
@@ -538,7 +538,7 @@ export default function ResearchManagementDashboard() {
  
             <button
               onClick={() => { setActiveTab('projects'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
                 activeTab === 'projects'
                   ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
                   : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
@@ -550,7 +550,7 @@ export default function ResearchManagementDashboard() {
  
             <button
               onClick={() => { setActiveTab('publications'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
                 activeTab === 'publications'
                   ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
                   : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
@@ -562,7 +562,7 @@ export default function ResearchManagementDashboard() {
  
             <button
               onClick={() => { setActiveTab('consultations'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
                 activeTab === 'consultations'
                   ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
                   : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
@@ -574,7 +574,7 @@ export default function ResearchManagementDashboard() {
  
             <button
               onClick={() => { setActiveTab('users'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
                 activeTab === 'users'
                   ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
                   : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
@@ -586,7 +586,7 @@ export default function ResearchManagementDashboard() {
  
             <button
               onClick={() => { setActiveTab('db-status'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
                 activeTab === 'db-status'
                   ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
                   : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
@@ -598,7 +598,7 @@ export default function ResearchManagementDashboard() {
 
             <button
               onClick={() => { setActiveTab('db-explorer'); setSearchQuery(''); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
                 activeTab === 'db-explorer'
                   ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
                   : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
