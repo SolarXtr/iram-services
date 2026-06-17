@@ -5,8 +5,17 @@ export async function dbQuery(text: string, params?: any[]) {
   // Try to fetch Cloudflare D1 database context
   let d1: any = null;
   try {
-    const { getRequestContext } = await import('@cloudflare/next-on-pages');
-    const ctx = getRequestContext();
+    let ctx: any = null;
+    try {
+      const { getRequestContext } = await import('@cloudflare/next-on-pages');
+      ctx = getRequestContext();
+    } catch (e) {
+      // Ignore
+    }
+    if (!ctx) {
+      const symbol = Symbol.for('__cloudflare-request-context__');
+      ctx = (globalThis as any)[symbol];
+    }
     if (ctx && ctx.env && (ctx.env as any).DB) {
       d1 = (ctx.env as any).DB;
     }

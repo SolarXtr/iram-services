@@ -1,12 +1,26 @@
 import { mockDb } from './mockDb';
 import { dbQuery } from './db';
 
+let getRequestContext: any = null;
+import('@cloudflare/next-on-pages')
+  .then((m) => {
+    getRequestContext = m.getRequestContext;
+  })
+  .catch(() => {});
+
 // Helper to safely get request context without crashing Next.js Edge compiler
 const safeGetRequestContext = () => {
   try {
-    const req = eval('require');
-    const { getRequestContext } = req('@cloudflare/next-on-pages');
-    return getRequestContext();
+    if (getRequestContext) {
+      const ctx = getRequestContext();
+      if (ctx) return ctx;
+    }
+  } catch (e) {
+    // Ignore
+  }
+  try {
+    const symbol = Symbol.for('__cloudflare-request-context__');
+    return (globalThis as any)[symbol] || null;
   } catch (e) {
     return null;
   }
