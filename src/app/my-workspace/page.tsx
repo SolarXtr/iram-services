@@ -87,7 +87,41 @@ export default function ResearcherWorkspace() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  
   const [loading, setLoading] = useState(true);
+
+  // Action / Toast Status State
+  const [actionStatus, setActionStatus] = useState<{ type: 'loading' | 'success' | 'error'; message: string } | null>(null);
+
+  // Auto-clear success/error toast notifications after 3 seconds
+  useEffect(() => {
+    if (actionStatus && actionStatus.type !== 'loading') {
+      const timer = setTimeout(() => {
+        setActionStatus(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionStatus]);
+
+  // General action wrapper to update status indicator
+  const runAction = async (msg: string, fetchFn: () => Promise<Response>, successMsg: string) => {
+    setActionStatus({ type: 'loading', message: msg });
+    try {
+      const res = await fetchFn();
+      if (res.ok) {
+        setActionStatus({ type: 'success', message: successMsg });
+        loadData();
+        return true;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setActionStatus({ type: 'error', message: errData.error || 'เกิดข้อผิดพลาดในการดำเนินการ' });
+        return false;
+      }
+    } catch (e: any) {
+      setActionStatus({ type: 'error', message: e.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
+      return false;
+    }
+  };
 
   // Modal States
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -270,29 +304,26 @@ export default function ResearcherWorkspace() {
 
   const handlePresentationCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const res = await fetch('/api/presentations', {
+    await runAction(
+      'กำลังเพิ่มประวัตินำเสนอผลงาน...',
+      () => fetch('/api/presentations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...presentationForm,
           presenterId: selectedResearcherId,
         })
-      });
-      if (res.ok) {
-        setIsPresentationModalOpen(false);
-        setPresentationForm({
-          title: '',
-          conference: '',
-          type: 'ORAL',
-          status: 'PENDING',
-          projectId: '',
-        });
-        loadData();
-      }
-    } catch (e) {
-      console.error(e);
-    }
+      }),
+      'เพิ่มประวัตินำเสนอผลงานสำเร็จแล้ว!'
+    );
+    setIsPresentationModalOpen(false);
+    setPresentationForm({
+      title: '',
+      conference: '',
+      type: 'ORAL',
+      status: 'PENDING',
+      projectId: '',
+    });
   };
 
   // Helpers
@@ -381,13 +412,7 @@ export default function ResearcherWorkspace() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#3c2f25]">ทะเบียนโครงการวิจัยวิชาการ</h2>
-              <button
-                onClick={() => setIsProjectModalOpen(true)}
-                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#3c2f25] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                <span>ยื่นเสนอโครงการใหม่</span>
-              </button>
+              {/* Add Project disabled */ null}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -447,13 +472,7 @@ export default function ResearcherWorkspace() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#3c2f25]">งานตีพิมพ์วารสารวิชาการและการเสนอขอเงินรางวัล</h2>
-              <button
-                onClick={() => setIsPublicationModalOpen(true)}
-                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#3c2f25] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                <span>ขออนุมัติรางวัลจากบทความ</span>
-              </button>
+              {/* Add Publication disabled */ null}
             </div>
 
             <div className="space-y-4">
@@ -523,21 +542,7 @@ export default function ResearcherWorkspace() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#3c2f25]">ตารางนัดหมายขอรับคำปรึกษา CEU</h2>
-              <button
-                onClick={() => {
-                  const staffAdvisor = allUsers.find(u => u.role === 'STAFF');
-                  setConsultationForm({
-                    type: 'PROTOCOL',
-                    appointmentTime: '',
-                    advisorId: staffAdvisor?.id || '',
-                  });
-                  setIsConsultationModalOpen(true);
-                }}
-                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#3c2f25] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                <span>จองคิวนัดปรึกษาด้านสถิติ / Protocol</span>
-              </button>
+              {/* Add Consultation disabled */ null}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

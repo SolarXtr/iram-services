@@ -30,8 +30,15 @@ export async function dbQuery(text: string, params?: any[]) {
   // Convert PostgreSQL parameters ($1, $2) to SQLite parameter format (?1, ?2)
   const sqliteSql = text.replace(/\$(\d+)/g, '?$1');
   
+  // Sanitize params: convert Date objects to ISO strings
+  const sanitizedParams = params && params.length > 0 
+    ? params.map(p => (p && typeof p === 'object' && typeof p.toISOString === 'function') ? p.toISOString() : p)
+    : params;
+
+  console.log(`[D1 DB] Params:`, sanitizedParams);
+
   const statement = d1.prepare(sqliteSql);
-  const boundStatement = params && params.length > 0 ? statement.bind(...params) : statement;
+  const boundStatement = sanitizedParams && sanitizedParams.length > 0 ? statement.bind(...sanitizedParams) : statement;
   const result = await boundStatement.all();
   
   console.log(`[D1 DB] Query success in ${Date.now() - start}ms`);

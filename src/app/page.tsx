@@ -1130,30 +1130,7 @@ export default function ResearchManagementDashboard() {
                     <option value="TERMINATED">TERMINATED</option>
                   </select>
                 </div>
-                {currentRole !== 'EXECUTIVE' && (
-                  <button
-                    onClick={() => {
-                      setEditingProject(null);
-                      setProjectForm({
-                        title: '',
-                        status: 'PROPOSED',
-                        budgetInitial: 0,
-                        budgetSpent: 0,
-                        startDate: '',
-                        endDate: '',
-                        ceuConsultDate: '',
-                        irbNo: '',
-                        approvedDate: '',
-                        leaderId: users[0]?.id || '',
-                      });
-                      setIsProjectModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] font-semibold text-sm px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
-                  >
-                    <Plus className="h-4.5 w-4.5" />
-                    <span>เพิ่มโครงการวิจัย</span>
-                  </button>
-                )}
+                {/* Add button disabled */ null}
               </div>
 
               {/* Projects Grid */}
@@ -1184,12 +1161,7 @@ export default function ResearchManagementDashboard() {
                           {/* Project Actions */}
                           {currentRole !== 'EXECUTIVE' && (
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                onClick={() => handleEditProject(p)}
-                                className="p-2 text-[#7a685c] hover:text-[#3c2f25] rounded-lg hover:bg-[#f9f5ee] transition-colors"
-                              >
-                                <Edit className="h-4.5 w-4.5" />
-                              </button>
+                              {/* Edit button disabled */ null}
                               <button
                                 onClick={() => handleDeleteProject(p.id)}
                                 className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/20 transition-colors"
@@ -1267,27 +1239,7 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#fdfcf9] border border-[#ebdccf] text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
                   />
                 </div>
-                {currentRole === 'RESEARCHER' && (
-                  <button
-                    onClick={() => {
-                      setEditingPublication(null);
-                      setPublicationForm({
-                        title: '',
-                        journal: '',
-                        quartile: 'Q1',
-                        rewardStatus: 'PENDING',
-                        rewardAmount: 0,
-                        projectId: projects[0]?.id || '',
-                        authorId: users[0]?.id || '',
-                      });
-                      setIsPublicationModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] font-semibold text-sm px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
-                  >
-                    <Plus className="h-4.5 w-4.5" />
-                    <span>ขอรับเงินรางวัลตีพิมพ์</span>
-                  </button>
-                )}
+                {/* Add button disabled */ null}
               </div>
 
               <div className="grid grid-cols-1 gap-6">
@@ -1309,12 +1261,7 @@ export default function ResearchManagementDashboard() {
 
                         {currentRole === 'RESEARCHER' && p.authorId === users.find((u) => u.role === 'RESEARCHER')?.id && (
                           <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleEditPublication(p)}
-                              className="p-1.5 text-[#7a685c] hover:text-[#3c2f25] rounded hover:bg-[#f9f5ee] transition-colors"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
+                            {/* Edit button disabled */ null}
                             <button
                               onClick={() => handleDeletePublication(p.id)}
                               className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
@@ -1393,25 +1340,7 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#fdfcf9] border border-[#ebdccf] text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
                   />
                 </div>
-                {currentRole === 'RESEARCHER' && (
-                  <button
-                    onClick={() => {
-                      setEditingConsultation(null);
-                      setConsultationForm({
-                        type: 'PROTOCOL',
-                        appointmentTime: '',
-                        status: 'SCHEDULED',
-                        advisorId: users.find((u) => u.role === 'STAFF')?.id || '',
-                        requesterId: users.find((u) => u.role === 'RESEARCHER')?.id || '',
-                      });
-                      setIsConsultationModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] font-semibold text-sm px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
-                  >
-                    <Plus className="h-4.5 w-4.5" />
-                    <span>จองคิวคำปรึกษางานวิจัย</span>
-                  </button>
-                )}
+                {/* Add button disabled */ null}
               </div>
 
               <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl overflow-hidden shadow-lg">
@@ -1485,12 +1414,7 @@ export default function ResearchManagementDashboard() {
                                     </button>
                                   </>
                                 )}
-                                <button
-                                  onClick={() => handleEditConsultation(c)}
-                                  className="p-1.5 text-[#7a685c] hover:text-[#3c2f25] hover:bg-[#f9f5ee] rounded"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
+                                {/* Edit button disabled */ null}
                                 <button
                                   onClick={() => handleDeleteConsultation(c.id)}
                                   className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 rounded"

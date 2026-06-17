@@ -191,11 +191,11 @@ const realDbHandlers = {
       `;
       const res = await dbQuery(sql, [
         id, data.title, data.status, data.budgetInitial, data.budgetSpent || 0,
-        data.startDate ? new Date(data.startDate) : new Date(),
-        data.endDate ? new Date(data.endDate) : new Date(),
-        data.ceuConsultDate ? new Date(data.ceuConsultDate) : null,
+        data.startDate ? new Date(data.startDate).toISOString() : new Date().toISOString(),
+        data.endDate ? new Date(data.endDate).toISOString() : new Date().toISOString(),
+        data.ceuConsultDate ? new Date(data.ceuConsultDate).toISOString() : null,
         data.irbNo || null,
-        data.approvedDate ? new Date(data.approvedDate) : null,
+        data.approvedDate ? new Date(data.approvedDate).toISOString() : null,
         data.department || null,
         data.leaderId
       ]);
@@ -210,11 +210,11 @@ const realDbHandlers = {
       const status = data.status !== undefined ? data.status : current.status;
       const budgetInitial = data.budgetInitial !== undefined ? data.budgetInitial : current.budgetInitial;
       const budgetSpent = data.budgetSpent !== undefined ? data.budgetSpent : current.budgetSpent;
-      const startDate = data.startDate !== undefined ? new Date(data.startDate) : current.startDate;
-      const endDate = data.endDate !== undefined ? new Date(data.endDate) : current.endDate;
-      const ceuConsultDate = data.ceuConsultDate !== undefined ? (data.ceuConsultDate ? new Date(data.ceuConsultDate) : null) : current.ceuConsultDate;
+      const startDate = data.startDate !== undefined ? new Date(data.startDate).toISOString() : current.startDate;
+      const endDate = data.endDate !== undefined ? new Date(data.endDate).toISOString() : current.endDate;
+      const ceuConsultDate = data.ceuConsultDate !== undefined ? (data.ceuConsultDate ? new Date(data.ceuConsultDate).toISOString() : null) : current.ceuConsultDate;
       const irbNo = data.irbNo !== undefined ? data.irbNo : current.irbNo;
-      const approvedDate = data.approvedDate !== undefined ? (data.approvedDate ? new Date(data.approvedDate) : null) : current.approvedDate;
+      const approvedDate = data.approvedDate !== undefined ? (data.approvedDate ? new Date(data.approvedDate).toISOString() : null) : current.approvedDate;
       const department = data.department !== undefined ? data.department : current.department;
       const leaderId = data.leaderId !== undefined ? data.leaderId : current.leaderId;
 
@@ -576,7 +576,7 @@ const realDbHandlers = {
         RETURNING id
       `;
       const res = await dbQuery(sql, [
-        id, data.type, new Date(data.appointmentTime), data.status || 'SCHEDULED',
+        id, data.type, new Date(data.appointmentTime).toISOString(), data.status || 'SCHEDULED',
         data.advisorId, data.requesterId
       ]);
       return realDbHandlers.consultations.findUnique(res.rows[0].id);
@@ -587,7 +587,7 @@ const realDbHandlers = {
       if (!current) throw new Error('Consultation not found');
 
       const type = data.type !== undefined ? data.type : current.type;
-      const appointmentTime = data.appointmentTime !== undefined ? new Date(data.appointmentTime) : current.appointmentTime;
+      const appointmentTime = data.appointmentTime !== undefined ? new Date(data.appointmentTime).toISOString() : current.appointmentTime;
       const status = data.status !== undefined ? data.status : current.status;
       const advisorId = data.advisorId !== undefined ? data.advisorId : current.advisorId;
       const requesterId = data.requesterId !== undefined ? data.requesterId : current.requesterId;
