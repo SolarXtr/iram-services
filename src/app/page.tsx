@@ -659,6 +659,22 @@ export default function ResearchManagementDashboard() {
 
         {/* Dashboard Pages Body */}
         <div className="flex-1 overflow-y-auto p-8 bg-[#f9f5ee]">
+          {currentRole !== 'STAFF' && (
+            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-xs text-[#b45309] font-medium flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 shadow-sm">
+              <div>
+                <span className="font-bold">⚠️ แนะนำสิทธิ์การใช้งาน:</span> หน้านี้คือหน้าจัดการหลังบ้านสำหรับ <strong>เจ้าหน้าที่ตรวจดูข้อมูลภาพรวม</strong>
+                <p className="mt-1 text-[#7a685c]">
+                  สำหรับผู้บริหาร/เจ้าหน้าที่/นักวิจัยทั่วไป กรุณาเข้าใช้งานที่ 
+                  <a href="/dashboard" className="underline font-bold text-[#d97706] ml-1 hover:text-[#c2410c]">หน้าสรุปภาพรวมแดชบอร์ด (/dashboard)</a> หรือ 
+                  <a href="/my-workspace" className="underline font-bold text-[#d97706] ml-1 hover:text-[#c2410c]">พื้นที่ทำงานนักวิจัย (/my-workspace)</a>
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <a href="/dashboard" className="bg-[#d97706] hover:bg-[#c2410c] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95">ไป Dashboard</a>
+                <a href="/my-workspace" className="bg-[#7a685c] hover:bg-[#3c2f25] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95">ไป Workspace</a>
+              </div>
+            </div>
+          )}
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
               {/* Stats Overview Grid */}

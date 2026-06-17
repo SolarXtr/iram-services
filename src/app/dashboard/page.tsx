@@ -190,10 +190,17 @@ export default function ExecutiveDashboard() {
               <span>รีเฟรชข้อมูล</span>
             </button>
             <a 
+              href="/my-workspace"
+              className="bg-[#7a685c] hover:bg-[#3c2f25] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-lg active:scale-95"
+            >
+              <span>พื้นที่ทำงานนักวิจัย</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+            <a 
               href="/"
               className="bg-[#d97706] hover:bg-[#c2410c] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-lg shadow-amber-500/10 active:scale-95"
             >
-              <span>กลับหน้าหลัก</span>
+              <span>จัดการข้อมูลภาพรวม (Staff)</span>
               <ArrowUpRight className="h-4 w-4" />
             </a>
           </div>

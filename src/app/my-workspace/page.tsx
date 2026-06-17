@@ -610,13 +610,15 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteProject(p.id)}
-                            className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
-                            title="ลบ"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {selectedResearcher?.role === 'STAFF' && (
+                            <button
+                              onClick={() => handleDeleteProject(p.id)}
+                              className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                              title="ลบ"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                       
@@ -737,13 +739,15 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeletePublication(p.id)}
-                            className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
-                            title="ลบ"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {selectedResearcher?.role === 'STAFF' && (
+                            <button
+                              onClick={() => handleDeletePublication(p.id)}
+                              className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                              title="ลบ"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -813,13 +817,15 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteConsultation(c.id)}
-                            className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
-                            title="ลบ"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {selectedResearcher?.role === 'STAFF' && (
+                            <button
+                              onClick={() => handleDeleteConsultation(c.id)}
+                              className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                              title="ลบ"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -863,13 +869,15 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteConsultation(c.id)}
-                            className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
-                            title="ลบ"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {selectedResearcher?.role === 'STAFF' && (
+                            <button
+                              onClick={() => handleDeleteConsultation(c.id)}
+                              className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                              title="ลบ"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -942,13 +950,15 @@ export default function ResearcherWorkspace() {
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => handleDeletePresentation(p.id)}
-                          className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
-                          title="ลบ"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {selectedResearcher?.role === 'STAFF' && (
+                          <button
+                            onClick={() => handleDeletePresentation(p.id)}
+                            className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                            title="ลบ"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
