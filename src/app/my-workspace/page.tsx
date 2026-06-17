@@ -87,41 +87,16 @@ export default function ResearcherWorkspace() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
-  
   const [loading, setLoading] = useState(true);
 
   // Action / Toast Status State
   const [actionStatus, setActionStatus] = useState<{ type: 'loading' | 'success' | 'error'; message: string } | null>(null);
 
-  // Auto-clear success/error toast notifications after 3 seconds
-  useEffect(() => {
-    if (actionStatus && actionStatus.type !== 'loading') {
-      const timer = setTimeout(() => {
-        setActionStatus(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [actionStatus]);
-
-  // General action wrapper to update status indicator
-  const runAction = async (msg: string, fetchFn: () => Promise<Response>, successMsg: string) => {
-    setActionStatus({ type: 'loading', message: msg });
-    try {
-      const res = await fetchFn();
-      if (res.ok) {
-        setActionStatus({ type: 'success', message: successMsg });
-        loadData();
-        return true;
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        setActionStatus({ type: 'error', message: errData.error || 'เกิดข้อผิดพลาดในการดำเนินการ' });
-        return false;
-      }
-    } catch (e: any) {
-      setActionStatus({ type: 'error', message: e.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
-      return false;
-    }
-  };
+  // Editing States
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingPublication, setEditingPublication] = useState<Publication | null>(null);
+  const [editingConsultation, setEditingConsultation] = useState<Consultation | null>(null);
+  const [editingPresentation, setEditingPresentation] = useState<Presentation | null>(null);
 
   // Modal States
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -132,7 +107,7 @@ export default function ResearcherWorkspace() {
   // Forms
   const [projectForm, setProjectForm] = useState({
     title: '',
-    status: 'PROPOSED' as const,
+    status: 'PROPOSED' as 'PROPOSED' | 'APPROVED' | 'ONGOING' | 'COMPLETED' | 'TERMINATED',
     budgetInitial: 0,
     budgetSpent: 0,
     startDate: '',
@@ -145,23 +120,33 @@ export default function ResearcherWorkspace() {
   const [publicationForm, setPublicationForm] = useState({
     title: '',
     journal: '',
-    quartile: 'Q1' as const,
+    quartile: 'Q1' as 'Q1' | 'Q2' | 'Q3' | 'Q4',
     rewardAmount: 0,
     projectId: '',
-    status: 'WRITING' as const,
+    status: 'WRITING' as 'WRITING' | 'UNDER_REVIEW' | 'PUBLISHED' | 'REWARDED',
   });
   const [consultationForm, setConsultationForm] = useState({
-    type: 'PROTOCOL' as const,
+    type: 'PROTOCOL' as 'PROTOCOL' | 'STATISTICAL',
     appointmentTime: '',
     advisorId: '',
   });
   const [presentationForm, setPresentationForm] = useState({
     title: '',
     conference: '',
-    type: 'ORAL' as const,
-    status: 'PENDING' as const,
+    type: 'ORAL' as 'ORAL' | 'POSTER',
+    status: 'PENDING' as 'PENDING' | 'PRESENTED',
     projectId: '',
   });
+
+  // Auto-clear success/error toast notifications after 3 seconds
+  useEffect(() => {
+    if (actionStatus && actionStatus.type !== 'loading') {
+      const timer = setTimeout(() => {
+        setActionStatus(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionStatus]);
 
   // Load Database Data
   const loadData = useCallback(async () => {
@@ -199,6 +184,26 @@ export default function ResearcherWorkspace() {
     loadData();
   }, [loadData]);
 
+  // General action wrapper to update status indicator
+  const runAction = async (msg: string, fetchFn: () => Promise<Response>, successMsg: string) => {
+    setActionStatus({ type: 'loading', message: msg });
+    try {
+      const res = await fetchFn();
+      if (res.ok) {
+        setActionStatus({ type: 'success', message: successMsg });
+        loadData();
+        return true;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setActionStatus({ type: 'error', message: errData.error || 'เกิดข้อผิดพลาดในการดำเนินการ' });
+        return false;
+      }
+    } catch (e: any) {
+      setActionStatus({ type: 'error', message: e.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
+      return false;
+    }
+  };
+
   // Filters by selected researcher
   const myProjects = projects.filter(p => p.leaderId === selectedResearcherId);
   const myPublications = publications.filter(p => p.authorId === selectedResearcherId);
@@ -211,119 +216,244 @@ export default function ResearcherWorkspace() {
 
   const selectedResearcher = allUsers.find(u => u.id === selectedResearcherId);
 
-  // Form Submissions
-  const handleProjectCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...projectForm,
-          leaderId: selectedResearcherId,
-          budgetInitial: Number(projectForm.budgetInitial),
-          budgetSpent: Number(projectForm.budgetSpent),
-        })
-      });
-      if (res.ok) {
-        setIsProjectModalOpen(false);
-        setProjectForm({
-          title: '',
-          status: 'PROPOSED',
-          budgetInitial: 0,
-          budgetSpent: 0,
-          startDate: '',
-          endDate: '',
-          ceuConsultDate: '',
-          irbNo: '',
-          approvedDate: '',
-          department: 'คณะแพทยศาสตร์',
-        });
-        loadData();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handlePublicationCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/publications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...publicationForm,
-          authorId: selectedResearcherId,
-          rewardAmount: Number(publicationForm.rewardAmount),
-          rewardStatus: 'PENDING',
-        })
-      });
-      if (res.ok) {
-        setIsPublicationModalOpen(false);
-        setPublicationForm({
-          title: '',
-          journal: '',
-          quartile: 'Q1',
-          rewardAmount: 0,
-          projectId: '',
-          status: 'WRITING',
-        });
-        loadData();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleConsultationCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/consultations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...consultationForm,
-          requesterId: selectedResearcherId,
-          status: 'SCHEDULED'
-        })
-      });
-      if (res.ok) {
-        setIsConsultationModalOpen(false);
-        setConsultationForm({
-          type: 'PROTOCOL',
-          appointmentTime: '',
-          advisorId: '',
-        });
-        loadData();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handlePresentationCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await runAction(
-      'กำลังเพิ่มประวัตินำเสนอผลงาน...',
-      () => fetch('/api/presentations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...presentationForm,
-          presenterId: selectedResearcherId,
-        })
-      }),
-      'เพิ่มประวัตินำเสนอผลงานสำเร็จแล้ว!'
-    );
-    setIsPresentationModalOpen(false);
-    setPresentationForm({
-      title: '',
-      conference: '',
-      type: 'ORAL',
-      status: 'PENDING',
-      projectId: '',
+  // Edit Initiator Functions
+  const handleEditProject = (p: Project) => {
+    setEditingProject(p);
+    setProjectForm({
+      title: p.title,
+      status: p.status,
+      budgetInitial: p.budgetInitial,
+      budgetSpent: p.budgetSpent,
+      startDate: p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : '',
+      endDate: p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : '',
+      ceuConsultDate: p.ceuConsultDate ? new Date(p.ceuConsultDate).toISOString().split('T')[0] : '',
+      irbNo: p.irbNo || '',
+      approvedDate: p.approvedDate ? new Date(p.approvedDate).toISOString().split('T')[0] : '',
+      department: p.department || 'คณะแพทยศาสตร์',
     });
+    setIsProjectModalOpen(true);
+  };
+
+  const handleEditPublication = (pub: Publication) => {
+    setEditingPublication(pub);
+    setPublicationForm({
+      title: pub.title,
+      journal: pub.journal,
+      quartile: pub.quartile,
+      rewardAmount: pub.rewardAmount,
+      projectId: pub.projectId || '',
+      status: pub.status,
+    });
+    setIsPublicationModalOpen(true);
+  };
+
+  const handleEditConsultation = (c: Consultation) => {
+    setEditingConsultation(c);
+    setConsultationForm({
+      type: c.type,
+      appointmentTime: c.appointmentTime ? new Date(c.appointmentTime).toISOString().slice(0, 16) : '',
+      advisorId: c.advisorId,
+    });
+    setIsConsultationModalOpen(true);
+  };
+
+  const handleEditPresentation = (pres: Presentation) => {
+    setEditingPresentation(pres);
+    setPresentationForm({
+      title: pres.title,
+      conference: pres.conference,
+      type: pres.type,
+      status: pres.status,
+      projectId: pres.projectId || '',
+    });
+    setIsPresentationModalOpen(true);
+  };
+
+  // Delete Handler Functions
+  const handleDeleteProject = async (id: string) => {
+    if (confirm('คุณต้องการลบโครงการวิจัยนี้ใช่หรือไม่?')) {
+      await runAction(
+        'กำลังลบโครงการวิจัย...',
+        () => fetch('/api/projects/' + id, { method: 'DELETE' }),
+        'ลบโครงการวิจัยสำเร็จแล้ว!'
+      );
+    }
+  };
+
+  const handleDeletePublication = async (id: string) => {
+    if (confirm('คุณต้องการลบข้อมูลงานตีพิมพ์นี้ใช่หรือไม่?')) {
+      await runAction(
+        'กำลังลบข้อมูลงานตีพิมพ์...',
+        () => fetch('/api/publications/' + id, { method: 'DELETE' }),
+        'ลบข้อมูลงานตีพิมพ์สำเร็จแล้ว!'
+      );
+    }
+  };
+
+  const handleDeleteConsultation = async (id: string) => {
+    if (confirm('คุณต้องการลบการจองนัดหมายคำปรึกษานี้ใช่หรือไม่?')) {
+      await runAction(
+        'กำลังลบการจองนัดหมาย...',
+        () => fetch('/api/consultations/' + id, { method: 'DELETE' }),
+        'ลบการจองนัดหมายสำเร็จแล้ว!'
+      );
+    }
+  };
+
+  const handleDeletePresentation = async (id: string) => {
+    if (confirm('คุณต้องการลบประวัตินำเสนอผลงานนี้ใช่หรือไม่?')) {
+      await runAction(
+        'กำลังลบประวัตินำเสนอผลงาน...',
+        () => fetch('/api/presentations/' + id, { method: 'DELETE' }),
+        'ลบประวัตินำเสนอผลงานสำเร็จแล้ว!'
+      );
+    }
+  };
+
+  // Unified Form Submissions
+  const handleProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingProject ? 'PUT' : 'POST';
+    const url = editingProject ? '/api/projects/' + editingProject.id : '/api/projects';
+    
+    const payload = {
+      ...projectForm,
+      leaderId: selectedResearcherId,
+      budgetInitial: Number(projectForm.budgetInitial),
+      budgetSpent: Number(projectForm.budgetSpent),
+      ceuConsultDate: projectForm.ceuConsultDate || null,
+      approvedDate: projectForm.approvedDate || null,
+      irbNo: projectForm.irbNo || null,
+    };
+
+    const success = await runAction(
+      editingProject ? 'กำลังบันทึกการแก้ไขโครงการ...' : 'กำลังยื่นเสนอโครงการใหม่...',
+      () => fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }),
+      editingProject ? 'แก้ไขโครงการวิจัยสำเร็จแล้ว!' : 'ยื่นเสนอโครงการใหม่สำเร็จแล้ว!'
+    );
+
+    if (success) {
+      setIsProjectModalOpen(false);
+      setEditingProject(null);
+      setProjectForm({
+        title: '',
+        status: 'PROPOSED',
+        budgetInitial: 0,
+        budgetSpent: 0,
+        startDate: '',
+        endDate: '',
+        ceuConsultDate: '',
+        irbNo: '',
+        approvedDate: '',
+        department: 'คณะแพทยศาสตร์',
+      });
+    }
+  };
+
+  const handlePublicationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingPublication ? 'PUT' : 'POST';
+    const url = editingPublication ? '/api/publications/' + editingPublication.id : '/api/publications';
+
+    const payload = {
+      ...publicationForm,
+      authorId: selectedResearcherId,
+      rewardAmount: Number(publicationForm.rewardAmount),
+      projectId: publicationForm.projectId || null,
+    };
+
+    const success = await runAction(
+      editingPublication ? 'กำลังบันทึกการแก้ไขข้อมูลบทความ...' : 'กำลังส่งคำร้องขอรับเงินรางวัลตีพิมพ์...',
+      () => fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }),
+      editingPublication ? 'แก้ไขข้อมูลบทความสำเร็จแล้ว!' : 'ส่งคำร้องขอรางวัลสำเร็จแล้ว!'
+    );
+
+    if (success) {
+      setIsPublicationModalOpen(false);
+      setEditingPublication(null);
+      setPublicationForm({
+        title: '',
+        journal: '',
+        quartile: 'Q1',
+        rewardAmount: 0,
+        projectId: '',
+        status: 'WRITING',
+      });
+    }
+  };
+
+  const handleConsultationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingConsultation ? 'PUT' : 'POST';
+    const url = editingConsultation ? '/api/consultations/' + editingConsultation.id : '/api/consultations';
+
+    const payload = {
+      ...consultationForm,
+      requesterId: selectedResearcherId,
+      status: editingConsultation ? editingConsultation.status : 'SCHEDULED',
+    };
+
+    const success = await runAction(
+      editingConsultation ? 'กำลังบันทึกการแก้ไขนัดหมาย...' : 'กำลังส่งคำยืนยันจองนัดหมายคำปรึกษา...',
+      () => fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }),
+      editingConsultation ? 'แก้ไขนัดหมายสำเร็จแล้ว!' : 'ส่งคำยืนยันจองนัดหมายสำเร็จแล้ว!'
+    );
+
+    if (success) {
+      setIsConsultationModalOpen(false);
+      setEditingConsultation(null);
+      setConsultationForm({
+        type: 'PROTOCOL',
+        appointmentTime: '',
+        advisorId: '',
+      });
+    }
+  };
+
+  const handlePresentationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const method = editingPresentation ? 'PUT' : 'POST';
+    const url = editingPresentation ? '/api/presentations/' + editingPresentation.id : '/api/presentations';
+
+    const payload = {
+      ...presentationForm,
+      presenterId: selectedResearcherId,
+      projectId: presentationForm.projectId || null,
+    };
+
+    const success = await runAction(
+      editingPresentation ? 'กำลังบันทึกการแก้ไขประวัตินำเสนอผลงาน...' : 'กำลังบันทึกประวัตินำเสนอผลงานวิจัย...',
+      () => fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }),
+      editingPresentation ? 'แก้ไขประวัตินำเสนอผลงานสำเร็จแล้ว!' : 'เพิ่มประวัตินำเสนอผลงานสำเร็จแล้ว!'
+    );
+
+    if (success) {
+      setIsPresentationModalOpen(false);
+      setEditingPresentation(null);
+      setPresentationForm({
+        title: '',
+        conference: '',
+        type: 'ORAL',
+        status: 'PENDING',
+        projectId: '',
+      });
+    }
   };
 
   // Helpers
@@ -351,30 +481,46 @@ export default function ResearcherWorkspace() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f9f5ee] text-[#3c2f25] p-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#fdfcf9] text-[#3c2f25] pb-12 font-sans selection:bg-[#d97706]/20 selection:text-[#3c2f25]">
+      
+      {/* Top Banner Header */}
+      <div className="bg-[#d97706] text-[#fdfcf9] py-3.5 px-6 shadow-md text-xs font-semibold tracking-wide flex justify-between items-center border-b border-[#c2410c]">
+        <div className="flex items-center gap-2">
+          <Award className="h-4.5 w-4.5 animate-pulse text-[#fdfcf9]" />
+          <span>RESEARCH & PUBLICATION CEU MANAGEMENT WORKSPACE</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="opacity-90 bg-black/10 px-2.5 py-1 rounded border border-[#fdfcf9]/20">Cloudflare Pages Live Mode (D1 Binding)</span>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 pt-10">
         
-        {/* Workspace Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-[#ebdccf]">
+        {/* Simulating Login/Select Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 pb-6 border-b border-[#ebdccf]">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-[#3c2f25]">พื้นที่ทำงานนักวิจัย (My Workspace)</h1>
-            <p className="text-sm text-[#7a685c] mt-1">จัดการโครงการวิจัยส่วนตัว ติดตามงานตีพิมพ์ และจองปรึกษา CEU ของคุณ</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#3c2f25] font-serif">พื้นที่ทำงานส่วนบุคคลของนักวิจัย</h1>
+            <p className="text-sm text-[#7a685c] mt-1.5 font-medium">จัดการเสนอขอโครงการวิจัย ยื่นเคลมรางวัลผลงานตีพิมพ์นิตยสาร และจองคิว CEU Advisory</p>
           </div>
 
-          {/* User selector for simulating login */}
-          <div className="flex items-center gap-3 bg-[#fdfcf9] border border-[#ebdccf] p-3 rounded-2xl shadow-md">
-            <User className="h-5 w-5 text-[#b45309] shrink-0" />
-            <div>
-              <span className="text-[10px] text-[#7a685c] font-bold block uppercase">นักวิจัยที่กำลังใช้งานอยู่</span>
+          <div className="flex items-center gap-3 bg-[#f9f5ee] border border-[#ebdccf] px-4.5 py-3 rounded-2xl shadow-sm self-start md:self-auto">
+            <span className="text-xs font-bold text-[#7a685c] whitespace-nowrap">จำลองเข้าสู่ระบบเป็น:</span>
+            <div className="relative">
               <select
                 value={selectedResearcherId}
-                onChange={(e) => setSelectedResearcherId(e.target.value)}
-                className="bg-[#f9f5ee] text-xs font-bold text-[#3c2f25] border-0 focus:ring-1 focus:ring-indigo-500 rounded-lg px-2 py-1 mt-0.5 cursor-pointer"
+                onChange={(e) => {
+                  setSelectedResearcherId(e.target.value);
+                  setEditingProject(null);
+                  setEditingPublication(null);
+                  setEditingConsultation(null);
+                  setEditingPresentation(null);
+                }}
+                className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl pl-3 pr-8 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] appearance-none cursor-pointer"
               >
                 {allUsers
-                  .filter(u => u.role === 'RESEARCHER')
+                  .filter(u => u.role === 'RESEARCHER' || u.role === 'STAFF')
                   .map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
+                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                   ))
                 }
               </select>
@@ -410,9 +556,30 @@ export default function ResearcherWorkspace() {
         {/* TAB 1: RESEARCH PROJECTS */}
         {activeTab === 'projects' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-6">
               <h2 className="text-lg font-bold text-[#3c2f25]">ทะเบียนโครงการวิจัยวิชาการ</h2>
-              {/* Add Project disabled */ null}
+              <button
+                onClick={() => {
+                  setEditingProject(null);
+                  setProjectForm({
+                    title: '',
+                    status: 'PROPOSED',
+                    budgetInitial: 0,
+                    budgetSpent: 0,
+                    startDate: '',
+                    endDate: '',
+                    ceuConsultDate: '',
+                    irbNo: '',
+                    approvedDate: '',
+                    department: 'คณะแพทยศาสตร์',
+                  });
+                  setIsProjectModalOpen(true);
+                }}
+                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#fdfcf9] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="h-4 w-4 text-[#fdfcf9]" />
+                <span>ยื่นเสนอโครงการใหม่</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -422,35 +589,48 @@ export default function ResearcherWorkspace() {
                 </div>
               ) : (
                 myProjects.map(p => (
-                  <div key={p.id} className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 flex flex-col justify-between hover:border-[#ebdccf] transition-colors">
+                  <div key={p.id} className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 flex flex-col justify-between hover:border-[#ebdccf] transition-colors relative">
                     <div>
                       <div className="flex justify-between items-start gap-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           p.status === 'PROPOSED' ? 'bg-[#f9f5ee] text-[#7a685c] border border-[#ebdccf]' :
-                          p.status === 'APPROVED' ? 'bg-[#f5e6d3] text-[#b45309] border border-[#ebdccf]' :
-                          p.status === 'ONGOING' ? 'bg-[#f5e6d3] text-[#b45309] border border-[#ebdccf] animate-pulse' :
-                          p.status === 'COMPLETED' ? 'bg-[#ebdccf] text-[#b45309] border border-[#ebdccf]' :
-                          'bg-[#ebdccf] text-[#7a685c] border border-[#ebdccf]'
+                          p.status === 'APPROVED' ? 'bg-cyan-950 text-cyan-400 border border-cyan-800' :
+                          p.status === 'ONGOING' ? 'bg-[#fdf6e2] text-[#b45309] border border-[#fbe3b5] animate-pulse' :
+                          p.status === 'COMPLETED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
+                          'bg-rose-950 text-rose-400 border border-rose-800'
                         }`}>
                           {p.status}
                         </span>
-                        {p.department && (
-                          <span className="text-xs text-[#7a685c] flex items-center gap-1">
-                            <Building className="h-3.5 w-3.5 text-[#7a685c]" />
-                            <span>{p.department}</span>
-                          </span>
-                        )}
+                        
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditProject(p)}
+                            className="p-1.5 text-[#7a685c] hover:text-[#3c2f25] rounded hover:bg-[#f9f5ee] transition-colors"
+                            title="แก้ไข"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProject(p.id)}
+                            className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                            title="ลบ"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
+                      
                       <h3 className="text-base font-bold text-[#3c2f25] mt-4">{p.title}</h3>
                       <div className="text-xs text-[#7a685c] space-y-1.5 mt-5">
-                        <p>ระยะเวลา: {new Date(p.startDate).toLocaleDateString('th-TH')} - {new Date(p.endDate).toLocaleDateString('th-TH')}</p>
+                        <p>ระยะเวลา: {formatDate(p.startDate)} - {formatDate(p.endDate)}</p>
                         <p>เลขที่ IRB: {p.irbNo || 'รอดำเนินการขอจริยธรรมวิจัย'}</p>
+                        {p.ceuConsultDate && <p className="text-[#b45309]">วันที่นัดหมายปรึกษา CEU: {formatDate(p.ceuConsultDate)}</p>}
                       </div>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-slate-950 space-y-2">
+                    <div className="mt-6 pt-4 border-t border-slate-900 space-y-2">
                       <div className="flex justify-between text-xs">
-                        <span className="text-[#7a685c]">ใช้จ่ายงบวิจัยไปแล้ว: <span className="text-[#d97706] font-semibold">{formatCurrency(p.budgetSpent)}</span></span>
+                        <span className="text-[#7a685c]">ใช้จ่ายงบวิจัยไปแล้ว: <span className="text-amber-500 font-semibold">{formatCurrency(p.budgetSpent)}</span></span>
                         <span className="text-[#7a685c]">งบจัดสรร: {formatCurrency(p.budgetInitial)}</span>
                       </div>
                       <div className="w-full h-2 bg-[#f9f5ee] rounded-full overflow-hidden p-0.5 border border-[#ebdccf]">
@@ -470,9 +650,26 @@ export default function ResearcherWorkspace() {
         {/* TAB 2: PUBLICATIONS & REWARDS */}
         {activeTab === 'publications' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-6">
               <h2 className="text-lg font-bold text-[#3c2f25]">งานตีพิมพ์วารสารวิชาการและการเสนอขอเงินรางวัล</h2>
-              {/* Add Publication disabled */ null}
+              <button
+                onClick={() => {
+                  setEditingPublication(null);
+                  setPublicationForm({
+                    title: '',
+                    journal: '',
+                    quartile: 'Q1',
+                    rewardAmount: 0,
+                    projectId: '',
+                    status: 'WRITING',
+                  });
+                  setIsPublicationModalOpen(true);
+                }}
+                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#fdfcf9] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="h-4 w-4 text-[#fdfcf9]" />
+                <span>ขออนุมัติรางวัลจากบทความ</span>
+              </button>
             </div>
 
             <div className="space-y-4">
@@ -486,7 +683,7 @@ export default function ResearcherWorkspace() {
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-3">
-                          <span className="bg-[#f5e6d3] text-[#d97706] border border-[#ebdccf] px-2.5 py-0.5 rounded-md text-[10px] font-bold">
+                          <span className="bg-amber-600/10 text-amber-500 border border-amber-600/30 px-2.5 py-0.5 rounded-md text-[10px] font-bold">
                             {p.quartile} Journal
                           </span>
                           <span className="text-xs text-[#7a685c] font-semibold">{p.journal}</span>
@@ -503,30 +700,50 @@ export default function ResearcherWorkspace() {
                         </p>
                       </div>
 
-                      {/* Reward request status column */}
-                      <div className="bg-[#f9f5ee] p-4 rounded-xl border border-[#ebdccf] flex items-center justify-between sm:justify-start gap-6 self-stretch sm:self-auto shrink-0">
-                        <div className="text-right">
-                          <span className="text-[10px] text-[#7a685c] block uppercase font-bold">เสนอขอรับรางวัล</span>
-                          <span className="text-sm font-extrabold text-[#d97706]">{formatCurrency(p.rewardAmount)}</span>
+                      <div className="flex items-center gap-4">
+                        {/* Reward request status column */}
+                        <div className="bg-[#f9f5ee] p-4 rounded-xl border border-[#ebdccf] flex items-center justify-between sm:justify-start gap-6 self-stretch sm:self-auto shrink-0">
+                          <div className="text-right">
+                            <span className="text-[10px] text-[#7a685c] block uppercase font-bold">เสนอขอรับรางวัล</span>
+                            <span className="text-sm font-extrabold text-[#d97706]">{formatCurrency(p.rewardAmount)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {p.rewardStatus === 'PENDING' && (
+                              <span className="bg-[#fdfcf9] text-[#7a685c] border border-[#ebdccf] px-3 py-1 rounded-full text-[10px] font-bold">
+                                PENDING (รอนุมัติ)
+                              </span>
+                            )}
+                            {p.rewardStatus === 'APPROVED' && (
+                              <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                APPROVED
+                              </span>
+                            )}
+                            {p.rewardStatus === 'REJECTED' && (
+                              <span className="bg-rose-950 text-rose-400 border border-rose-800 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
+                                <XCircle className="h-3.5 w-3.5" />
+                                REJECTED
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {p.rewardStatus === 'PENDING' && (
-                            <span className="bg-[#fdfcf9] text-[#7a685c] border border-[#ebdccf] px-3 py-1 rounded-full text-[10px] font-bold">
-                              PENDING (รอนุมัติ)
-                            </span>
-                          )}
-                          {p.rewardStatus === 'APPROVED' && (
-                            <span className="bg-[#ebdccf] text-[#b45309] border border-[#ebdccf] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              <span>อนุมัติสั่งจ่าย</span>
-                            </span>
-                          )}
-                          {p.rewardStatus === 'REJECTED' && (
-                            <span className="bg-[#ebdccf] text-[#7a685c] border border-[#ebdccf] px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">
-                              <XCircle className="h-3.5 w-3.5" />
-                              <span>ไม่อนุมัติคำร้อง</span>
-                            </span>
-                          )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleEditPublication(p)}
+                            className="p-1.5 text-[#7a685c] hover:text-[#3c2f25] rounded hover:bg-[#f9f5ee] transition-colors"
+                            title="แก้ไข"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePublication(p.id)}
+                            className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                            title="ลบ"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -540,9 +757,24 @@ export default function ResearcherWorkspace() {
         {/* TAB 3: CONSULTATIONS */}
         {activeTab === 'consultations' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-6">
               <h2 className="text-lg font-bold text-[#3c2f25]">ตารางนัดหมายขอรับคำปรึกษา CEU</h2>
-              {/* Add Consultation disabled */ null}
+              <button
+                onClick={() => {
+                  setEditingConsultation(null);
+                  const staffAdvisor = allUsers.find(u => u.role === 'STAFF');
+                  setConsultationForm({
+                    type: 'PROTOCOL',
+                    appointmentTime: '',
+                    advisorId: staffAdvisor?.id || '',
+                  });
+                  setIsConsultationModalOpen(true);
+                }}
+                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#fdfcf9] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="h-4 w-4 text-[#fdfcf9]" />
+                <span>จองคิวนัดปรึกษาด้านสถิติ / Protocol</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -560,17 +792,36 @@ export default function ResearcherWorkspace() {
                     <div key={c.id} className="bg-[#f9f5ee] p-4 rounded-xl border border-[#ebdccf] flex items-center justify-between">
                       <div>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          c.type === 'PROTOCOL' ? 'bg-[#f5e6d3] text-[#d97706] border border-[#ebdccf]' :
+                          c.type === 'PROTOCOL' ? 'bg-amber-600/10 text-amber-500 border border-amber-500/20' :
                           'bg-cyan-600/10 text-cyan-500 border border-cyan-500/20'
                         }`}>
                           {c.type}
                         </span>
-                        <h4 className="text-sm font-bold text-[#3c2f25] mt-2">{formatDate(c.appointmentTime)}</h4>
+                        <h4 className="text-sm font-bold text-[#3c2f25] mt-2">{formatDate(c.appointmentTime)} น.</h4>
                         <p className="text-[11px] text-[#7a685c] mt-1">ที่ปรึกษา: {c.advisor?.name || 'กำลังจัดหา'}</p>
                       </div>
-                      <span className="text-[10px] font-semibold bg-[#f5e6d3] text-blue-400 px-2 py-0.5 rounded-full border border-[#ebdccf] uppercase">
-                        {c.status}
-                      </span>
+                      
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-semibold bg-blue-950 text-blue-400 px-2 py-0.5 rounded-full border border-blue-800 uppercase">
+                          {c.status}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditConsultation(c)}
+                            className="p-1 text-[#7a685c] hover:text-[#3c2f25] rounded hover:bg-[#fdfcf9] transition-colors"
+                            title="แก้ไข"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConsultation(c.id)}
+                            className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                            title="ลบ"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ))
                 )}
@@ -586,18 +837,41 @@ export default function ResearcherWorkspace() {
                   <p className="text-xs text-[#7a685c] py-6 text-center">ไม่มีประวัติการนัดหมายคำปรึกษา</p>
                 ) : (
                   pastConsultations.map(c => (
-                    <div key={c.id} className="bg-[#f9f5ee] p-4 rounded-xl border border-[#ebdccf] flex items-center justify-between opacity-70">
+                    <div key={c.id} className="bg-[#f9f5ee] p-4 rounded-xl border border-[#ebdccf] flex items-center justify-between opacity-75">
                       <div>
-                        <span className="text-[9px] font-semibold text-[#7a685c] block uppercase">{c.type}</span>
-                        <h4 className="text-xs font-semibold text-slate-300 mt-1">{formatDate(c.appointmentTime)}</h4>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          c.type === 'PROTOCOL' ? 'bg-amber-600/10 text-amber-500 border border-amber-500/20' :
+                          'bg-cyan-600/10 text-cyan-500 border border-cyan-500/20'
+                        }`}>{c.type}</span>
+                        <h4 className="text-xs font-semibold text-slate-700 mt-2">{formatDate(c.appointmentTime)} น.</h4>
                         <p className="text-[10px] text-[#7a685c] mt-0.5">ที่ปรึกษา: {c.advisor?.name}</p>
                       </div>
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                        c.status === 'COMPLETED' ? 'bg-[#ebdccf] text-emerald-500 border border-emerald-900' :
-                        'bg-[#ebdccf] text-rose-500 border border-[#ebdccf]'
-                      }`}>
-                        {c.status}
-                      </span>
+
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                          c.status === 'COMPLETED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
+                          'bg-rose-950 text-rose-400 border border-rose-800'
+                        }`}>
+                          {c.status}
+                        </span>
+                        
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditConsultation(c)}
+                            className="p-1 text-[#7a685c] hover:text-[#3c2f25] rounded hover:bg-[#fdfcf9] transition-colors"
+                            title="แก้ไข"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConsultation(c.id)}
+                            className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                            title="ลบ"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ))
                 )}
@@ -610,22 +884,23 @@ export default function ResearcherWorkspace() {
         {/* TAB 4: PRESENTATIONS */}
         {activeTab === 'presentations' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-6">
               <h2 className="text-lg font-bold text-[#3c2f25]">ประวัติทะเบียนงานนำเสนอวิจัยวิชาการ</h2>
               <button
                 onClick={() => {
+                  setEditingPresentation(null);
                   setPresentationForm({
                     title: '',
                     conference: '',
                     type: 'ORAL',
                     status: 'PENDING',
-                    projectId: projects[0]?.id || '',
+                    projectId: '',
                   });
                   setIsPresentationModalOpen(true);
                 }}
-                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#3c2f25] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
+                className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#fdfcf9] font-semibold text-xs px-4.5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 text-[#fdfcf9]" />
                 <span>เพิ่มประวัตินำเสนอผลงาน</span>
               </button>
             </div>
@@ -645,19 +920,36 @@ export default function ResearcherWorkspace() {
                         }`}>
                           {p.type} Presentation
                         </span>
-                        <span className="text-slate-600">•</span>
+                        <span className="text-slate-400">•</span>
                         <span className="text-xs text-[#7a685c] font-semibold">{p.conference}</span>
                       </div>
                       <h3 className="text-base font-bold text-[#3c2f25] mt-3">{p.title}</h3>
                     </div>
 
-                    <div className="shrink-0 ml-4">
+                    <div className="flex items-center gap-4 shrink-0">
                       <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full ${
-                        p.status === 'PRESENTED' ? 'bg-[#ebdccf] text-[#b45309] border border-[#ebdccf]' :
-                        'bg-[#f9f5ee] text-[#7a685c] border border-[#ebdccf]'
+                        p.status === 'PENDING' ? 'bg-[#fdfcf9] text-[#7a685c] border border-[#ebdccf]' :
+                        'bg-emerald-950 text-emerald-400 border border-emerald-800'
                       }`}>
                         {p.status}
                       </span>
+                      
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleEditPresentation(p)}
+                          className="p-1.5 text-[#7a685c] hover:text-[#3c2f25] rounded hover:bg-[#f9f5ee] transition-colors"
+                          title="แก้ไข"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePresentation(p.id)}
+                          className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                          title="ลบ"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -665,63 +957,38 @@ export default function ResearcherWorkspace() {
             </div>
           </div>
         )}
-
       </div>
 
-      {/* -------------------- MODALS -------------------- */}
+      {/* -------------------- MODAL DIALOGS -------------------- */}
 
-      {/* Project Modal */}
+      {/* Project Modal (Create / Edit) */}
       {isProjectModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[#f9f5ee] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
-            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">ยื่นข้อเสนอโครงการวิจัยใหม่</h3>
-            <form onSubmit={handleProjectCreate} className="space-y-4">
+          <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
+            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">
+              {editingProject ? 'แก้ไขโครงการวิจัยวิชาการ' : 'ยื่นขอเสนอจดทะเบียนโครงการวิจัยวิชาการ'}
+            </h3>
+            <form onSubmit={handleProjectSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-[#7a685c] block mb-2">ชื่อโครงการวิจัย</label>
+                <label className="text-xs font-semibold text-[#7a685c] block mb-2">ชื่อโครงการวิจัย (ภาษาไทย / อังกฤษ)</label>
                 <input
                   type="text"
                   required
                   value={projectForm.title}
                   onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">คณะ/ภาควิชาที่จัดตั้ง</label>
-                  <select
-                    value={projectForm.department}
-                    onChange={(e) => setProjectForm({ ...projectForm, department: e.target.value })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:ring-1"
-                  >
-                    <option value="คณะแพทยศาสตร์">คณะแพทยศาสตร์</option>
-                    <option value="คณะวิทยาศาสตร์">คณะวิทยาศาสตร์</option>
-                    <option value="คณะเภสัชศาสตร์">คณะเภสัชศาสตร์</option>
-                    <option value="คณะทันตแพทยศาสตร์">คณะทันตแพทยศาสตร์</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">งบประมาณเริ่มต้นเสนอขอ (บาท)</label>
-                  <input
-                    type="number"
-                    required
-                    value={projectForm.budgetInitial}
-                    onChange={(e) => setProjectForm({ ...projectForm, budgetInitial: Number(e.target.value) })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:ring-1"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">วันที่เริ่มโครงการ</label>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">วันที่เริ่มต้นโครงการ</label>
                   <input
                     type="date"
                     required
                     value={projectForm.startDate}
                     onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:ring-1"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   />
                 </div>
                 <div>
@@ -731,24 +998,111 @@ export default function ResearcherWorkspace() {
                     required
                     value={projectForm.endDate}
                     onChange={(e) => setProjectForm({ ...projectForm, endDate: e.target.value })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">งบประมาณตั้งต้นวิจัย (บาท)</label>
+                  <input
+                    type="number"
+                    required
+                    value={projectForm.budgetInitial}
+                    onChange={(e) => setProjectForm({ ...projectForm, budgetInitial: Number(e.target.value) })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">งบประมาณที่ใช้ไปแล้ว (บาท)</label>
+                  <input
+                    type="number"
+                    required
+                    value={projectForm.budgetSpent}
+                    onChange={(e) => setProjectForm({ ...projectForm, budgetSpent: Number(e.target.value) })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">เลขที่การอนุมัติ IRB</label>
+                  <input
+                    type="text"
+                    value={projectForm.irbNo}
+                    onChange={(e) => setProjectForm({ ...projectForm, irbNo: e.target.value })}
+                    placeholder="เว้นว่างได้"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">วันที่อนุมัติ IRB</label>
+                  <input
+                    type="date"
+                    value={projectForm.approvedDate}
+                    onChange={(e) => setProjectForm({ ...projectForm, approvedDate: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">สังกัดคณะวิจัย</label>
+                  <select
+                    value={projectForm.department}
+                    onChange={(e) => setProjectForm({ ...projectForm, department: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  >
+                    <option value="คณะแพทยศาสตร์">คณะแพทยศาสตร์</option>
+                    <option value="คณะทันตแพทยศาสตร์">คณะทันตแพทยศาสตร์</option>
+                    <option value="คณะเภสัชศาสตร์">คณะเภสัชศาสตร์</option>
+                    <option value="วิทยาลัยพยาบาล">วิทยาลัยพยาบาล</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">สถานะโครงการ</label>
+                  <select
+                    value={projectForm.status}
+                    onChange={(e) => setProjectForm({ ...projectForm, status: e.target.value as any })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  >
+                    <option value="PROPOSED">PROPOSED</option>
+                    <option value="APPROVED">APPROVED</option>
+                    <option value="ONGOING">ONGOING</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                    <option value="TERMINATED">TERMINATED</option>
+                  </select>
+                </div>
+              </div>
+
+              {editingProject && (
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">วันที่ปรึกษา CEU (วันนัด)</label>
+                  <input
+                    type="date"
+                    value={projectForm.ceuConsultDate}
+                    onChange={(e) => setProjectForm({ ...projectForm, ceuConsultDate: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#ebdccf]">
                 <button
                   type="button"
                   onClick={() => setIsProjectModalOpen(false)}
-                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#fdfcf9]"
+                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#f9f5ee]"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-4.5 py-2.5 bg-[#d97706] hover:bg-[#c2410c] text-[#3c2f25] text-xs font-semibold rounded-xl"
+                  className="px-4.5 py-2.5 bg-[#d97706] text-[#fdfcf9] text-xs font-semibold rounded-xl shadow-lg"
                 >
-                  ยื่นขอจดทะเบียนโครงการ
+                  {editingProject ? 'บันทึกการแก้ไข' : 'ยื่นขอจดทะเบียนโครงการ'}
                 </button>
               </div>
             </form>
@@ -759,9 +1113,11 @@ export default function ResearcherWorkspace() {
       {/* Publication Reward Request Modal */}
       {isPublicationModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[#f9f5ee] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
-            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">ขออนุมัติรับเงินรางวัลผลงานตีพิมพ์</h3>
-            <form onSubmit={handlePublicationCreate} className="space-y-4">
+          <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
+            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">
+              {editingPublication ? 'แก้ไขข้อมูลบทความวิจัย' : 'ขออนุมัติรับเงินรางวัลผลงานตีพิมพ์'}
+            </h3>
+            <form onSubmit={handlePublicationSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#7a685c] block mb-2">ชื่อบทความวิจัยที่ตีพิมพ์</label>
                 <input
@@ -769,7 +1125,7 @@ export default function ResearcherWorkspace() {
                   required
                   value={publicationForm.title}
                   onChange={(e) => setPublicationForm({ ...publicationForm, title: e.target.value })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 />
               </div>
 
@@ -781,7 +1137,7 @@ export default function ResearcherWorkspace() {
                     required
                     value={publicationForm.journal}
                     onChange={(e) => setPublicationForm({ ...publicationForm, journal: e.target.value })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   />
                 </div>
                 <div>
@@ -789,7 +1145,7 @@ export default function ResearcherWorkspace() {
                   <select
                     value={publicationForm.quartile}
                     onChange={(e) => setPublicationForm({ ...publicationForm, quartile: e.target.value as any })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   >
                     <option value="Q1">Q1</option>
                     <option value="Q2">Q2</option>
@@ -805,7 +1161,7 @@ export default function ResearcherWorkspace() {
                   <select
                     value={publicationForm.projectId}
                     onChange={(e) => setPublicationForm({ ...publicationForm, projectId: e.target.value })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   >
                     <option value="">ไม่ได้อ้างอิงโครงการ (อิสระ)</option>
                     {myProjects.map(p => (
@@ -818,7 +1174,7 @@ export default function ResearcherWorkspace() {
                   <select
                     value={publicationForm.status}
                     onChange={(e) => setPublicationForm({ ...publicationForm, status: e.target.value as any })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   >
                     <option value="WRITING">กำลังเขียนบทความ (Draft)</option>
                     <option value="UNDER_REVIEW">ส่งพิจารณาตรวจแก้ (Under Review)</option>
@@ -834,7 +1190,7 @@ export default function ResearcherWorkspace() {
                   required
                   value={publicationForm.rewardAmount}
                   onChange={(e) => setPublicationForm({ ...publicationForm, rewardAmount: Number(e.target.value) })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 />
               </div>
 
@@ -842,15 +1198,15 @@ export default function ResearcherWorkspace() {
                 <button
                   type="button"
                   onClick={() => setIsPublicationModalOpen(false)}
-                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#fdfcf9]"
+                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#f9f5ee]"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-4.5 py-2.5 bg-[#d97706] text-[#3c2f25] text-xs font-semibold rounded-xl shadow-lg"
+                  className="px-4.5 py-2.5 bg-[#d97706] text-[#fdfcf9] text-xs font-semibold rounded-xl shadow-lg"
                 >
-                  ยืนยันส่งคำร้อง
+                  {editingPublication ? 'บันทึกการแก้ไข' : 'ยืนยันส่งคำร้อง'}
                 </button>
               </div>
             </form>
@@ -861,15 +1217,17 @@ export default function ResearcherWorkspace() {
       {/* Consultation Booking Modal */}
       {isConsultationModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[#f9f5ee] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
-            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">จองคิวนัดหมายปรึกษา CEU</h3>
-            <form onSubmit={handleConsultationCreate} className="space-y-4">
+          <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
+            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">
+              {editingConsultation ? 'แก้ไขการจองคิวนัดหมายปรึกษา' : 'จองคิวนัดหมายปรึกษา CEU'}
+            </h3>
+            <form onSubmit={handleConsultationSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#7a685c] block mb-2">ประเภทหัวข้อรับบริการ</label>
                 <select
                   value={consultationForm.type}
                   onChange={(e) => setConsultationForm({ ...consultationForm, type: e.target.value as any })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 >
                   <option value="PROTOCOL">จริยธรรมโครงร่างวิจัย (PROTOCOL)</option>
                   <option value="STATISTICAL">วิเคราะห์และวางแผนสถิติวิจัย (STATISTICAL)</option>
@@ -883,7 +1241,7 @@ export default function ResearcherWorkspace() {
                   required
                   value={consultationForm.appointmentTime}
                   onChange={(e) => setConsultationForm({ ...consultationForm, appointmentTime: e.target.value })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 />
               </div>
 
@@ -893,7 +1251,7 @@ export default function ResearcherWorkspace() {
                   required
                   value={consultationForm.advisorId}
                   onChange={(e) => setConsultationForm({ ...consultationForm, advisorId: e.target.value })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 >
                   <option value="" disabled>เลือกที่ปรึกษา...</option>
                   {allUsers
@@ -909,15 +1267,15 @@ export default function ResearcherWorkspace() {
                 <button
                   type="button"
                   onClick={() => setIsConsultationModalOpen(false)}
-                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#fdfcf9]"
+                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#f9f5ee]"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-4.5 py-2.5 bg-[#d97706] text-[#3c2f25] text-xs font-semibold rounded-xl shadow-lg"
+                  className="px-4.5 py-2.5 bg-[#d97706] text-[#fdfcf9] text-xs font-semibold rounded-xl shadow-lg"
                 >
-                  ส่งยืนยันจองนัดหมาย
+                  {editingConsultation ? 'บันทึกการแก้ไข' : 'ส่งยืนยันจองนัดหมาย'}
                 </button>
               </div>
             </form>
@@ -925,12 +1283,14 @@ export default function ResearcherWorkspace() {
         </div>
       )}
 
-      {/* Presentation Create Modal */}
+      {/* Presentation Create/Edit Modal */}
       {isPresentationModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[#f9f5ee] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
-            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">บันทึกประวัติการนำเสนอผลงานวิจัย</h3>
-            <form onSubmit={handlePresentationCreate} className="space-y-4">
+          <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-lg shadow-2xl relative">
+            <h3 className="text-lg font-bold text-[#3c2f25] mb-6">
+              {editingPresentation ? 'แก้ไขประวัติการนำเสนอผลงานวิจัย' : 'บันทึกประวัติการนำเสนอผลงานวิจัย'}
+            </h3>
+            <form onSubmit={handlePresentationSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#7a685c] block mb-2">ชื่อหัวข้อผลงานวิจัย</label>
                 <input
@@ -938,7 +1298,7 @@ export default function ResearcherWorkspace() {
                   required
                   value={presentationForm.title}
                   onChange={(e) => setPresentationForm({ ...presentationForm, title: e.target.value })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 />
               </div>
 
@@ -949,7 +1309,7 @@ export default function ResearcherWorkspace() {
                   required
                   value={presentationForm.conference}
                   onChange={(e) => setPresentationForm({ ...presentationForm, conference: e.target.value })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 />
               </div>
 
@@ -959,7 +1319,7 @@ export default function ResearcherWorkspace() {
                   <select
                     value={presentationForm.type}
                     onChange={(e) => setPresentationForm({ ...presentationForm, type: e.target.value as any })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   >
                     <option value="ORAL"> Oral (บรรยาย)</option>
                     <option value="POSTER">Poster (โปสเตอร์)</option>
@@ -970,7 +1330,7 @@ export default function ResearcherWorkspace() {
                   <select
                     value={presentationForm.status}
                     onChange={(e) => setPresentationForm({ ...presentationForm, status: e.target.value as any })}
-                    className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                   >
                     <option value="PENDING">กำลังส่งประวัติ (รอนำเสนอ)</option>
                     <option value="PRESENTED">นำเสนอสำเร็จแล้ว (Presented)</option>
@@ -983,7 +1343,7 @@ export default function ResearcherWorkspace() {
                 <select
                   value={presentationForm.projectId}
                   onChange={(e) => setPresentationForm({ ...presentationForm, projectId: e.target.value })}
-                  className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 >
                   <option value="">ไม่ได้อ้างอิงโครงการ (อิสระ)</option>
                   {myProjects.map(p => (
@@ -996,18 +1356,43 @@ export default function ResearcherWorkspace() {
                 <button
                   type="button"
                   onClick={() => setIsPresentationModalOpen(false)}
-                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#fdfcf9]"
+                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#f9f5ee]"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="px-4.5 py-2.5 bg-[#d97706] text-[#3c2f25] text-xs font-semibold rounded-xl shadow-lg"
+                  className="px-4.5 py-2.5 bg-[#d97706] text-[#fdfcf9] text-xs font-semibold rounded-xl shadow-lg"
                 >
-                  บันทึกงานนำเสนอ
+                  {editingPresentation ? 'บันทึกการแก้ไข' : 'บันทึกงานนำเสนอ'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Action Status Toast Notification */}
+      {actionStatus && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm transition-all duration-300">
+          <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md bg-[#fdfcf9]/95 border-[#d97706]/30 text-[#d97706]">
+            {actionStatus.type === 'loading' && (
+              <svg className="animate-spin h-5 w-5 text-[#d97706]" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            )}
+            {actionStatus.type === 'success' && (
+              <svg className="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+            {actionStatus.type === 'error' && (
+              <svg className="h-5 w-5 text-rose-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <span className="text-sm font-bold tracking-wide">{actionStatus.message}</span>
           </div>
         </div>
       )}
