@@ -1,9 +1,10 @@
-// Types matching Prisma models
+// Types matching database models
 export interface MockUser {
   id: string;
   name: string;
   email: string;
   role: 'RESEARCHER' | 'STAFF' | 'EXECUTIVE';
+  isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +22,7 @@ export interface MockProject {
   approvedDate?: string | null;
   department?: string | null;
   leaderId: string;
+  isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +37,7 @@ export interface MockPublication {
   status: 'WRITING' | 'UNDER_REVIEW' | 'PUBLISHED' | 'REWARDED';
   projectId?: string | null;
   authorId: string;
+  isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +50,7 @@ export interface MockPresentation {
   status: 'PENDING' | 'PRESENTED';
   projectId?: string | null;
   presenterId: string;
+  isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -58,8 +62,20 @@ export interface MockConsultation {
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
   advisorId: string;
   requesterId: string;
+  isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MockAuditLog {
+  id: string;
+  tableName: string;
+  recordId: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  oldData?: string | null;
+  newData?: string | null;
+  performedBy?: string | null;
+  timestamp: string;
 }
 
 interface DBStructure {
@@ -68,6 +84,7 @@ interface DBStructure {
   publications: MockPublication[];
   presentations: MockPresentation[];
   consultations: MockConsultation[];
+  auditLogs: MockAuditLog[];
 }
 
 const defaultData: DBStructure = {
@@ -77,6 +94,7 @@ const defaultData: DBStructure = {
       name: 'ศ.ดร. สมเกียรติ รักเรียน (นักวิจัย)',
       email: 'somkiat.r@iram.edu',
       role: 'RESEARCHER',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -85,6 +103,7 @@ const defaultData: DBStructure = {
       name: 'ดร. วิภา จิตวิทยา (นักวิจัย)',
       email: 'wipa.j@iram.edu',
       role: 'RESEARCHER',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -93,6 +112,7 @@ const defaultData: DBStructure = {
       name: 'คุณ วันดี ทำงานดี (เจ้าหน้าที่)',
       email: 'wandee.w@iram.edu',
       role: 'STAFF',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -101,6 +121,7 @@ const defaultData: DBStructure = {
       name: 'รศ.นพ. ทรงพล บริหาร (ผู้บริหาร)',
       email: 'songpol.s@iram.edu',
       role: 'EXECUTIVE',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -119,6 +140,7 @@ const defaultData: DBStructure = {
       approvedDate: '2025-12-15T09:00:00.000Z',
       department: 'คณะแพทยศาสตร์',
       leaderId: 'user-1',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -135,6 +157,7 @@ const defaultData: DBStructure = {
       approvedDate: '2026-05-20T11:00:00.000Z',
       department: 'คณะวิทยาศาสตร์',
       leaderId: 'user-2',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -151,6 +174,7 @@ const defaultData: DBStructure = {
       approvedDate: '2024-12-10T14:00:00.000Z',
       department: 'คณะเภสัชศาสตร์',
       leaderId: 'user-1',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -166,6 +190,7 @@ const defaultData: DBStructure = {
       status: 'REWARDED',
       projectId: 'project-1',
       authorId: 'user-1',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -179,6 +204,7 @@ const defaultData: DBStructure = {
       status: 'PUBLISHED',
       projectId: 'project-3',
       authorId: 'user-1',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -192,6 +218,7 @@ const defaultData: DBStructure = {
       status: 'UNDER_REVIEW',
       projectId: 'project-2',
       authorId: 'user-2',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -205,6 +232,7 @@ const defaultData: DBStructure = {
       status: 'PRESENTED',
       projectId: 'project-1',
       presenterId: 'user-1',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -216,6 +244,7 @@ const defaultData: DBStructure = {
       status: 'PENDING',
       projectId: 'project-2',
       presenterId: 'user-2',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -228,6 +257,7 @@ const defaultData: DBStructure = {
       status: 'COMPLETED',
       advisorId: 'user-3',
       requesterId: 'user-1',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -238,6 +268,7 @@ const defaultData: DBStructure = {
       status: 'COMPLETED',
       advisorId: 'user-3',
       requesterId: 'user-2',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -248,10 +279,12 @@ const defaultData: DBStructure = {
       status: 'SCHEDULED',
       advisorId: 'user-3',
       requesterId: 'user-1',
+      isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
-  ]
+  ],
+  auditLogs: []
 };
 
 // In-memory database state
@@ -265,47 +298,75 @@ function writeDb(data: DBStructure) {
   dbState = data;
 }
 
+// Global helper to write audit logs in mock DB
+const logAction = (tableName: string, recordId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', oldData: any, newData: any, performedBy?: string | null) => {
+  const db = readDb();
+  if (!db.auditLogs) {
+    db.auditLogs = [];
+  }
+  db.auditLogs.push({
+    id: 'log-' + Date.now() + '-' + Math.floor(Math.random() * 10000),
+    tableName,
+    recordId,
+    action,
+    oldData: oldData ? JSON.stringify(oldData) : null,
+    newData: newData ? JSON.stringify(newData) : null,
+    performedBy: performedBy || 'system',
+    timestamp: new Date().toISOString(),
+  });
+  writeDb(db);
+};
+
 export const mockDb = {
   // Users CRUD
   users: {
     findMany: async () => {
-      return readDb().users;
+      return readDb().users.filter((u) => !u.isDeleted);
     },
     findUnique: async (id: string) => {
-      return readDb().users.find((u) => u.id === id) || null;
+      return readDb().users.find((u) => u.id === id && !u.isDeleted) || null;
     },
-    create: async (data: Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>) => {
+    create: async (data: Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
       const db = readDb();
       const newUser: MockUser = {
         ...data,
         id: 'user-' + Date.now(),
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       db.users.push(newUser);
       writeDb(db);
+      logAction('irUser', newUser.id, 'CREATE', null, newUser, performedBy);
       return newUser;
     },
-    update: async (id: string, data: Partial<Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    update: async (id: string, data: Partial<Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.users.findIndex((u) => u.id === id);
+      const idx = db.users.findIndex((u) => u.id === id && !u.isDeleted);
       if (idx === -1) throw new Error('User not found');
+      const oldVal = { ...db.users[idx] };
       db.users[idx] = {
         ...db.users[idx],
         ...data,
         updatedAt: new Date().toISOString(),
       };
       writeDb(db);
+      logAction('irUser', id, 'UPDATE', oldVal, db.users[idx], performedBy);
       return db.users[idx];
     },
-    delete: async (id: string) => {
+    delete: async (id: string, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.users.findIndex((u) => u.id === id);
+      const idx = db.users.findIndex((u) => u.id === id && !u.isDeleted);
       if (idx === -1) throw new Error('User not found');
-      const deleted = db.users[idx];
-      db.users.splice(idx, 1);
+      const oldVal = { ...db.users[idx] };
+      
+      // Perform soft delete
+      db.users[idx].isDeleted = true;
+      db.users[idx].updatedAt = new Date().toISOString();
       writeDb(db);
-      return deleted;
+      
+      logAction('irUser', id, 'DELETE', oldVal, null, performedBy);
+      return oldVal;
     },
   },
 
@@ -313,58 +374,69 @@ export const mockDb = {
   projects: {
     findMany: async () => {
       const db = readDb();
-      return db.projects.map((p) => ({
-        ...p,
-        leader: db.users.find((u) => u.id === p.leaderId),
-      }));
+      return db.projects
+        .filter((p) => !p.isDeleted)
+        .map((p) => ({
+          ...p,
+          leader: db.users.find((u) => u.id === p.leaderId),
+        }));
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const p = db.projects.find((x) => x.id === id);
+      const p = db.projects.find((x) => x.id === id && !x.isDeleted);
       if (!p) return null;
       return {
         ...p,
         leader: db.users.find((u) => u.id === p.leaderId),
       };
     },
-    create: async (data: Omit<MockProject, 'id' | 'createdAt' | 'updatedAt'>) => {
+    create: async (data: Omit<MockProject, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
       const db = readDb();
       const newProj: MockProject = {
         ...data,
         id: 'project-' + Date.now(),
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       db.projects.push(newProj);
       writeDb(db);
+      logAction('irResearchProject', newProj.id, 'CREATE', null, newProj, performedBy);
       return {
         ...newProj,
         leader: db.users.find((u) => u.id === newProj.leaderId),
       };
     },
-    update: async (id: string, data: Partial<Omit<MockProject, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    update: async (id: string, data: Partial<Omit<MockProject, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.projects.findIndex((x) => x.id === id);
+      const idx = db.projects.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Project not found');
+      const oldVal = { ...db.projects[idx] };
       db.projects[idx] = {
         ...db.projects[idx],
         ...data,
         updatedAt: new Date().toISOString(),
       };
       writeDb(db);
+      logAction('irResearchProject', id, 'UPDATE', oldVal, db.projects[idx], performedBy);
       return {
         ...db.projects[idx],
         leader: db.users.find((u) => u.id === db.projects[idx].leaderId),
       };
     },
-    delete: async (id: string) => {
+    delete: async (id: string, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.projects.findIndex((x) => x.id === id);
+      const idx = db.projects.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Project not found');
-      const deleted = db.projects[idx];
-      db.projects.splice(idx, 1);
+      const oldVal = { ...db.projects[idx] };
+      
+      // Perform soft delete
+      db.projects[idx].isDeleted = true;
+      db.projects[idx].updatedAt = new Date().toISOString();
       writeDb(db);
-      return deleted;
+      
+      logAction('irResearchProject', id, 'DELETE', oldVal, null, performedBy);
+      return oldVal;
     },
   },
 
@@ -372,15 +444,17 @@ export const mockDb = {
   publications: {
     findMany: async () => {
       const db = readDb();
-      return db.publications.map((p) => ({
-        ...p,
-        project: db.projects.find((proj) => proj.id === p.projectId) || null,
-        author: db.users.find((u) => u.id === p.authorId),
-      }));
+      return db.publications
+        .filter((p) => !p.isDeleted)
+        .map((p) => ({
+          ...p,
+          project: db.projects.find((proj) => proj.id === p.projectId) || null,
+          author: db.users.find((u) => u.id === p.authorId),
+        }));
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const p = db.publications.find((x) => x.id === id);
+      const p = db.publications.find((x) => x.id === id && !x.isDeleted);
       if (!p) return null;
       return {
         ...p,
@@ -388,46 +462,55 @@ export const mockDb = {
         author: db.users.find((u) => u.id === p.authorId),
       };
     },
-    create: async (data: Omit<MockPublication, 'id' | 'createdAt' | 'updatedAt'>) => {
+    create: async (data: Omit<MockPublication, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
       const db = readDb();
       const newPub: MockPublication = {
         ...data,
         id: 'pub-' + Date.now(),
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       db.publications.push(newPub);
       writeDb(db);
+      logAction('irPublication', newPub.id, 'CREATE', null, newPub, performedBy);
       return {
         ...newPub,
         project: db.projects.find((proj) => proj.id === newPub.projectId) || null,
         author: db.users.find((u) => u.id === newPub.authorId),
       };
     },
-    update: async (id: string, data: Partial<Omit<MockPublication, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    update: async (id: string, data: Partial<Omit<MockPublication, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.publications.findIndex((x) => x.id === id);
+      const idx = db.publications.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Publication not found');
+      const oldVal = { ...db.publications[idx] };
       db.publications[idx] = {
         ...db.publications[idx],
         ...data,
         updatedAt: new Date().toISOString(),
       };
       writeDb(db);
+      logAction('irPublication', id, 'UPDATE', oldVal, db.publications[idx], performedBy);
       return {
         ...db.publications[idx],
         project: db.projects.find((proj) => proj.id === db.publications[idx].projectId) || null,
         author: db.users.find((u) => u.id === db.publications[idx].authorId),
       };
     },
-    delete: async (id: string) => {
+    delete: async (id: string, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.publications.findIndex((x) => x.id === id);
+      const idx = db.publications.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Publication not found');
-      const deleted = db.publications[idx];
-      db.publications.splice(idx, 1);
+      const oldVal = { ...db.publications[idx] };
+      
+      // Perform soft delete
+      db.publications[idx].isDeleted = true;
+      db.publications[idx].updatedAt = new Date().toISOString();
       writeDb(db);
-      return deleted;
+      
+      logAction('irPublication', id, 'DELETE', oldVal, null, performedBy);
+      return oldVal;
     },
   },
 
@@ -435,15 +518,17 @@ export const mockDb = {
   presentations: {
     findMany: async () => {
       const db = readDb();
-      return db.presentations.map((p) => ({
-        ...p,
-        project: db.projects.find((proj) => proj.id === p.projectId) || null,
-        presenter: db.users.find((u) => u.id === p.presenterId),
-      }));
+      return db.presentations
+        .filter((p) => !p.isDeleted)
+        .map((p) => ({
+          ...p,
+          project: db.projects.find((proj) => proj.id === p.projectId) || null,
+          presenter: db.users.find((u) => u.id === p.presenterId),
+        }));
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const p = db.presentations.find((x) => x.id === id);
+      const p = db.presentations.find((x) => x.id === id && !x.isDeleted);
       if (!p) return null;
       return {
         ...p,
@@ -451,46 +536,55 @@ export const mockDb = {
         presenter: db.users.find((u) => u.id === p.presenterId),
       };
     },
-    create: async (data: Omit<MockPresentation, 'id' | 'createdAt' | 'updatedAt'>) => {
+    create: async (data: Omit<MockPresentation, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
       const db = readDb();
       const newPres: MockPresentation = {
         ...data,
         id: 'pres-' + Date.now(),
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       db.presentations.push(newPres);
       writeDb(db);
+      logAction('irPresentation', newPres.id, 'CREATE', null, newPres, performedBy);
       return {
         ...newPres,
         project: db.projects.find((proj) => proj.id === newPres.projectId) || null,
         presenter: db.users.find((u) => u.id === newPres.presenterId),
       };
     },
-    update: async (id: string, data: Partial<Omit<MockPresentation, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    update: async (id: string, data: Partial<Omit<MockPresentation, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.presentations.findIndex((x) => x.id === id);
+      const idx = db.presentations.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Presentation not found');
+      const oldVal = { ...db.presentations[idx] };
       db.presentations[idx] = {
         ...db.presentations[idx],
         ...data,
         updatedAt: new Date().toISOString(),
       };
       writeDb(db);
+      logAction('irPresentation', id, 'UPDATE', oldVal, db.presentations[idx], performedBy);
       return {
         ...db.presentations[idx],
         project: db.projects.find((proj) => proj.id === db.presentations[idx].projectId) || null,
         presenter: db.users.find((u) => u.id === db.presentations[idx].presenterId),
       };
     },
-    delete: async (id: string) => {
+    delete: async (id: string, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.presentations.findIndex((x) => x.id === id);
+      const idx = db.presentations.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Presentation not found');
-      const deleted = db.presentations[idx];
-      db.presentations.splice(idx, 1);
+      const oldVal = { ...db.presentations[idx] };
+      
+      // Perform soft delete
+      db.presentations[idx].isDeleted = true;
+      db.presentations[idx].updatedAt = new Date().toISOString();
       writeDb(db);
-      return deleted;
+      
+      logAction('irPresentation', id, 'DELETE', oldVal, null, performedBy);
+      return oldVal;
     },
   },
 
@@ -498,15 +592,17 @@ export const mockDb = {
   consultations: {
     findMany: async () => {
       const db = readDb();
-      return db.consultations.map((c) => ({
-        ...c,
-        advisor: db.users.find((u) => u.id === c.advisorId),
-        requester: db.users.find((u) => u.id === c.requesterId),
-      }));
+      return db.consultations
+        .filter((c) => !c.isDeleted)
+        .map((c) => ({
+          ...c,
+          advisor: db.users.find((u) => u.id === c.advisorId),
+          requester: db.users.find((u) => u.id === c.requesterId),
+        }));
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const c = db.consultations.find((x) => x.id === id);
+      const c = db.consultations.find((x) => x.id === id && !x.isDeleted);
       if (!c) return null;
       return {
         ...c,
@@ -514,46 +610,62 @@ export const mockDb = {
         requester: db.users.find((u) => u.id === c.requesterId),
       };
     },
-    create: async (data: Omit<MockConsultation, 'id' | 'createdAt' | 'updatedAt'>) => {
+    create: async (data: Omit<MockConsultation, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
       const db = readDb();
       const newConsult: MockConsultation = {
         ...data,
         id: 'consult-' + Date.now(),
+        isDeleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       db.consultations.push(newConsult);
       writeDb(db);
+      logAction('irConsultation', newConsult.id, 'CREATE', null, newConsult, performedBy);
       return {
         ...newConsult,
         advisor: db.users.find((u) => u.id === newConsult.advisorId),
         requester: db.users.find((u) => u.id === newConsult.requesterId),
       };
     },
-    update: async (id: string, data: Partial<Omit<MockConsultation, 'id' | 'createdAt' | 'updatedAt'>>) => {
+    update: async (id: string, data: Partial<Omit<MockConsultation, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.consultations.findIndex((x) => x.id === id);
+      const idx = db.consultations.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Consultation not found');
+      const oldVal = { ...db.consultations[idx] };
       db.consultations[idx] = {
         ...db.consultations[idx],
         ...data,
         updatedAt: new Date().toISOString(),
       };
       writeDb(db);
+      logAction('irConsultation', id, 'UPDATE', oldVal, db.consultations[idx], performedBy);
       return {
         ...db.consultations[idx],
         advisor: db.users.find((u) => u.id === db.consultations[idx].advisorId),
         requester: db.users.find((u) => u.id === db.consultations[idx].requesterId),
       };
     },
-    delete: async (id: string) => {
+    delete: async (id: string, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.consultations.findIndex((x) => x.id === id);
+      const idx = db.consultations.findIndex((x) => x.id === id && !x.isDeleted);
       if (idx === -1) throw new Error('Consultation not found');
-      const deleted = db.consultations[idx];
-      db.consultations.splice(idx, 1);
+      const oldVal = { ...db.consultations[idx] };
+      
+      // Perform soft delete
+      db.consultations[idx].isDeleted = true;
+      db.consultations[idx].updatedAt = new Date().toISOString();
       writeDb(db);
-      return deleted;
+      
+      logAction('irConsultation', id, 'DELETE', oldVal, null, performedBy);
+      return oldVal;
     },
   },
+  
+  // Audit Logs Read
+  auditLogs: {
+    findMany: async () => {
+      return readDb().auditLogs || [];
+    }
+  }
 };

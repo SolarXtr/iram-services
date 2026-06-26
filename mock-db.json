@@ -5,6 +5,7 @@
       "name": "ศ.ดร. สมเกียรติ รักเรียน (นักวิจัย)",
       "email": "somkiat.r@iram.edu",
       "role": "RESEARCHER",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -13,6 +14,7 @@
       "name": "ดร. วิภา จิตวิทยา (นักวิจัย)",
       "email": "wipa.j@iram.edu",
       "role": "RESEARCHER",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -21,6 +23,7 @@
       "name": "คุณ วันดี ทำงานดี (เจ้าหน้าที่)",
       "email": "wandee.w@iram.edu",
       "role": "STAFF",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -29,6 +32,7 @@
       "name": "รศ.นพ. ทรงพล บริหาร (ผู้บริหาร)",
       "email": "songpol.s@iram.edu",
       "role": "EXECUTIVE",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     }
@@ -47,6 +51,7 @@
       "approvedDate": "2025-12-15T09:00:00.000Z",
       "department": "คณะแพทยศาสตร์",
       "leaderId": "user-1",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -63,6 +68,7 @@
       "approvedDate": "2026-05-20T11:00:00.000Z",
       "department": "คณะวิทยาศาสตร์",
       "leaderId": "user-2",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -79,23 +85,9 @@
       "approvedDate": "2024-12-10T14:00:00.000Z",
       "department": "คณะเภสัชศาสตร์",
       "leaderId": "user-1",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
-    },
-    {
-      "title": "การจัดการระบบ ai สำหรับโรงเรียนแพทย์",
-      "status": "PROPOSED",
-      "budgetInitial": 1000000,
-      "budgetSpent": 0,
-      "startDate": "2026-06-02T00:00:00.000Z",
-      "endDate": "2028-01-02T00:00:00.000Z",
-      "leaderId": "user-1",
-      "ceuConsultDate": null,
-      "irbNo": null,
-      "approvedDate": null,
-      "id": "project-1780394674126",
-      "createdAt": "2026-06-02T10:04:34.126Z",
-      "updatedAt": "2026-06-02T10:04:34.126Z"
     }
   ],
   "publications": [
@@ -109,6 +101,7 @@
       "status": "REWARDED",
       "projectId": "project-1",
       "authorId": "user-1",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -122,6 +115,7 @@
       "status": "PUBLISHED",
       "projectId": "project-3",
       "authorId": "user-1",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -135,6 +129,7 @@
       "status": "UNDER_REVIEW",
       "projectId": "project-2",
       "authorId": "user-2",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     }
@@ -148,6 +143,7 @@
       "status": "PRESENTED",
       "projectId": "project-1",
       "presenterId": "user-1",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -159,6 +155,7 @@
       "status": "PENDING",
       "projectId": "project-2",
       "presenterId": "user-2",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     }
@@ -171,6 +168,7 @@
       "status": "COMPLETED",
       "advisorId": "user-3",
       "requesterId": "user-1",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -181,6 +179,7 @@
       "status": "COMPLETED",
       "advisorId": "user-3",
       "requesterId": "user-2",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     },
@@ -191,8 +190,10 @@
       "status": "SCHEDULED",
       "advisorId": "user-3",
       "requesterId": "user-1",
+      "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
     }
-  ]
+  ],
+  "auditLogs": []
 }

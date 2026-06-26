@@ -15,6 +15,7 @@ CREATE TABLE "irUser" (
     "name" TEXT NOT NULL,
     "email" TEXT UNIQUE NOT NULL,
     "role" TEXT NOT NULL, -- 'RESEARCHER', 'STAFF', 'EXECUTIVE'
+    "isDeleted" INTEGER DEFAULT 0,
     "createdAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     "updatedAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -33,6 +34,7 @@ CREATE TABLE "irResearchProject" (
     "approvedDate" TEXT,
     "department" TEXT,
     "leaderId" TEXT NOT NULL,
+    "isDeleted" INTEGER DEFAULT 0,
     "createdAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     "updatedAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     FOREIGN KEY ("leaderId") REFERENCES "irUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -49,6 +51,7 @@ CREATE TABLE "irPublication" (
     "status" TEXT NOT NULL, -- 'WRITING', 'SUBMITTED', 'UNDER_REVIEW', 'PUBLISHED', 'REWARDED'
     "projectId" TEXT,
     "authorId" TEXT NOT NULL,
+    "isDeleted" INTEGER DEFAULT 0,
     "createdAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     "updatedAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     FOREIGN KEY ("projectId") REFERENCES "irResearchProject" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
@@ -64,6 +67,7 @@ CREATE TABLE "irPresentation" (
     "status" TEXT DEFAULT 'PENDING', -- 'PENDING', 'PRESENTED', 'CANCELLED'
     "projectId" TEXT,
     "presenterId" TEXT NOT NULL,
+    "isDeleted" INTEGER DEFAULT 0,
     "createdAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     "updatedAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     FOREIGN KEY ("projectId") REFERENCES "irResearchProject" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
@@ -78,10 +82,23 @@ CREATE TABLE "irConsultation" (
     "status" TEXT DEFAULT 'SCHEDULED', -- 'SCHEDULED', 'COMPLETED', 'CANCELLED'
     "advisorId" TEXT NOT NULL,
     "requesterId" TEXT NOT NULL,
+    "isDeleted" INTEGER DEFAULT 0,
     "createdAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     "updatedAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     FOREIGN KEY ("advisorId") REFERENCES "irUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY ("requesterId") REFERENCES "irUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- 6. Create "irAuditLog" Table
+CREATE TABLE "irAuditLog" (
+    "id" TEXT PRIMARY KEY,
+    "tableName" TEXT NOT NULL,
+    "recordId" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "oldData" TEXT,
+    "newData" TEXT,
+    "performedBy" TEXT,
+    "timestamp" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- ========================================================
