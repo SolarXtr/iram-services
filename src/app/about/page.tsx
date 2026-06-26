@@ -84,6 +84,13 @@ export default function AboutProjectPage() {
             <p className="text-sm text-[#7a685c] leading-relaxed max-w-3xl">
               รับผิดชอบการออกแบบสถาปัตยกรรมระบบเชื่อมต่อ Cloudflare Edge Platform, จัดทำฐานข้อมูล D1 Relational DB, ออกแบบ UI/UX ธีมสีอุ่นพรีเมียม (Warm Aesthetics) และแก้ไขช่องโหว่ด้านสิทธิ์การจัดการข้อมูลให้ตรงตามความต้องการทางธุรกิจอย่างปลอดภัย
             </p>
+            <div className="flex flex-wrap gap-4 text-xs font-semibold text-[#b45309] pt-3.5 border-t border-[#ebdccf]/60 mt-4 justify-center md:justify-start">
+              <span>Developed by Antigravity v2.1.4</span>
+              <span className="text-[#ebdccf] hidden md:inline">•</span>
+              <span>
+                Account: <a href="mailto:tinnakornh@gmail.com" className="underline hover:text-[#d97706] transition-colors">TINNAKORNH</a>
+              </span>
+            </div>
           </div>
         </section>
 
