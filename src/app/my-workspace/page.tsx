@@ -490,6 +490,7 @@ export default function ResearcherWorkspace() {
           <span>RESEARCH & PUBLICATION CEU MANAGEMENT WORKSPACE</span>
         </div>
         <div className="flex items-center gap-3">
+          <a href="/about" className="text-[#fdfcf9] hover:underline font-semibold mr-2">เกี่ยวกับโครงการ (Portfolio)</a>
           <span className="opacity-90 bg-black/10 px-2.5 py-1 rounded border border-[#fdfcf9]/20">Cloudflare Pages Live Mode (D1 Binding)</span>
         </div>
       </div>

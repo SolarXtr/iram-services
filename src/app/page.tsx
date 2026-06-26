@@ -20,7 +20,8 @@ import {
   Clock, 
   RefreshCw,
   UserCheck,
-  Database
+  Database,
+  HelpCircle
 } from 'lucide-react';
 
 // Types matching mockDb / Prisma
@@ -607,6 +608,14 @@ export default function ResearchManagementDashboard() {
               <Database className="h-5 w-5" />
               <span>สำรวจฐานข้อมูล (DB Explorer)</span>
             </button>
+
+            <a
+              href="/about"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]"
+            >
+              <HelpCircle className="h-5 w-5" />
+              <span>เกี่ยวกับโครงการ (Portfolio)</span>
+            </a>
           </nav>
         </div>
 
