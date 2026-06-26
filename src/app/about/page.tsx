@@ -132,6 +132,66 @@ export default function AboutProjectPage() {
           </div>
         </section>
 
+        {/* Website Structure & Link Mapping */}
+        <section className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 shadow-md space-y-6">
+          <h2 className="text-xl font-bold text-[#3c2f25] border-b border-[#ebdccf] pb-3 flex items-center gap-2 font-serif">
+            <BookOpen className="h-5.5 w-5.5 text-[#b45309]" />
+            <span>โครงสร้างลิงก์และหน้าเว็บของระบบ (Sitemap & Page Structure)</span>
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-[#7a685c]">
+            
+            {/* Homepage / Staff Console */}
+            <div className="bg-[#f9f5ee] border border-[#ebdccf] p-5 rounded-2xl space-y-3">
+              <h3 className="font-bold text-sm text-[#3c2f25] flex items-center gap-1.5 border-b border-[#ebdccf] pb-2">
+                <FileText className="h-4.5 w-4.5 text-[#d97706]" />
+                <span>หน้าหลัก / หน้าแอดมิน (Root Page `/`)</span>
+              </h3>
+              <p className="leading-relaxed">เป็นศุนย์กลางระบบ (Staff Management Console) เพื่อให้เจ้าหน้าที่ตรวจสอบและดำเนินการจัดการข้อมูลหลัก ประกอบด้วยแท็บย่อย:</p>
+              <ul className="list-disc pl-4 space-y-1.5">
+                <li><span className="font-bold text-[#3c2f25]">สรุปภาพรวม:</span> สถิติเบื้องต้นและคิวการให้คำปรึกษา</li>
+                <li><span className="font-bold text-[#3c2f25]">โครงการวิจัย:</span> ดูโครงการทั้งหมด ตรวจสอบงบประมาณ</li>
+                <li><span className="font-bold text-[#3c2f25]">บทความวิชาการ:</span> อนุมัติสิทธิ์เงินรางวัลการตีพิมพ์แยกตาม Quartile</li>
+                <li><span className="font-bold text-[#3c2f25]">การให้คำปรึกษา CEU:</span> ตรวจสอบและเปลี่ยนสถานะคิวรับนัดคำปรึกษา</li>
+                <li><span className="font-bold text-[#3c2f25]">บริหารข้อมูลผู้ใช้:</span> ทำ CRUD สร้าง/แก้ไข/ลบ รายชื่อผู้ใช้</li>
+                <li><span className="font-bold text-[#3c2f25]">DB Explorer / DB Status:</span> สำรวจตารางฐานข้อมูลและทดสอบความเร็วดีเลย์ของ D1 DB</li>
+              </ul>
+            </div>
+
+            {/* Dashboard Overview */}
+            <div className="bg-[#f9f5ee] border border-[#ebdccf] p-5 rounded-2xl space-y-3">
+              <h3 className="font-bold text-sm text-[#3c2f25] flex items-center gap-1.5 border-b border-[#ebdccf] pb-2">
+                <TrendingUp className="h-4.5 w-4.5 text-[#d97706]" />
+                <span>หน้าสรุปภาพรวม (`/dashboard`)</span>
+              </h3>
+              <p className="leading-relaxed">หน้าเพจสำหรับผู้บริหาร, เจ้าหน้าที่ หรือนักวิจัยทั่วไป เข้ามาตรวจดูสรุปภาพรวมความคืบหน้าของงานวิจัยแบบ Read-Only:</p>
+              <ul className="list-disc pl-4 space-y-1.5">
+                <li><span className="font-bold text-[#3c2f25]">กราฟเปรียบเทียบงบประมาณ:</span> เปรียบเทียบงบประมาณตั้งต้น vs เบิกจ่ายจริง แยกตามคณะ</li>
+                <li><span className="font-bold text-[#3c2f25]">สัดส่วนผลงานตีพิมพ์:</span> สถิติตาม Quartile Q1-Q4 และสถานะขั้นตอนการผลิตงานตีพิมพ์</li>
+                <li><span className="font-bold text-[#3c2f25]">สถิติการนำเสนอผลงาน:</span> จำนวนการนำเสนอรูปแบบ Oral / Poster</li>
+                <li><span className="font-bold text-[#3c2f25]">คิวรับบริการ CEU:</span> นับเคสเข้ารับบริการปรึกษาด้านสถิติจริง</li>
+              </ul>
+            </div>
+
+            {/* Researcher Workspace */}
+            <div className="bg-[#f9f5ee] border border-[#ebdccf] p-5 rounded-2xl space-y-3">
+              <h3 className="font-bold text-sm text-[#3c2f25] flex items-center gap-1.5 border-b border-[#ebdccf] pb-2">
+                <User className="h-4.5 w-4.5 text-[#d97706]" />
+                <span>หน้าพื้นที่งานนักวิจัย (`/my-workspace`)</span>
+              </h3>
+              <p className="leading-relaxed">หน้าต่างการยื่นแบบฟอร์มข้อมูลเฉพาะบุคคลสำหรับนักวิจัย (Researcher Workspace) โดยกรองข้อมูลเฉพาะของตนเอง:</p>
+              <ul className="list-disc pl-4 space-y-1.5">
+                <li><span className="font-bold text-[#3c2f25]">โครงการวิจัยของฉัน:</span> ยื่นแบบฟอร์มเสนอขอจดทะเบียนโครงการวิจัยใหม่</li>
+                <li><span className="font-bold text-[#3c2f25]">การตีพิมพ์และขอรางวัล:</span> ยื่นเคลมเงินรางวัลการตีพิมพ์พร้อมเอกสารอ้างอิง</li>
+                <li><span className="font-bold text-[#3c2f25]">นัดหมายปรึกษา CEU:</span> ทำการจองคิวระบุวันเวลา ประเภทหัวข้อ และที่ปรึกษา</li>
+                <li><span className="font-bold text-[#3c2f25]">ประวัตินำเสนอผลงาน:</span> เพิ่มและแก้ไขข้อมูลงานนำเสนอวิจัย</li>
+                <li><span className="font-bold text-[#3c2f25]">ข้อจำกัดด้านความปลอดภัย:</span> นักวิจัยไม่มีสิทธิ์ "ลบ" ข้อมูลของตนเอง เพื่อความปลอดภัยของข้อมูลธุรกรรมการเงิน</li>
+              </ul>
+            </div>
+
+          </div>
+        </section>
+
         {/* Problem Solving & Optimization Section */}
         <section className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 shadow-md space-y-6">
           <h2 className="text-xl font-bold text-[#3c2f25] border-b border-[#ebdccf] pb-3 flex items-center gap-2 font-serif">
