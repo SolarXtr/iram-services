@@ -261,6 +261,19 @@ export default function AboutProjectPage() {
               </div>
             </div>
 
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">การป้องกันข้อมูลและตัวชี้วัดเสียหาย (Safe Deletion & Former Researcher Status)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> การลบนักวิจัยออกจากระบบส่งผลให้ผลงานโครงการวิจัยหรืองานตีพิมพ์ของอดีตนักวิจัยสูญหายหรือเกิดข้อผิดพลาดในการคำนวณ KPI รวมระดับองค์กร  
+                  <br /><strong>ทางแก้:</strong> เพิ่มตรรกะ Safe Deletion ป้องกันการลบนักวิจัยหากยังมีโครงการที่กำลังดำเนินงานอยู่ (APPROVED/ONGOING) และอัปเดตระบบให้ยอมดึงข้อมูลและแสดงสิทธิ์ประวัติของสมาชิกที่พ้นสภาพได้ โดยจะติดป้ายกำกับวงเล็บว่า <code>(พ้นสภาพ)</code> เพื่อรักษา KPI องค์กรไว้ครบถ้วน
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
  
@@ -279,6 +292,7 @@ export default function AboutProjectPage() {
               <li>ระบบการแจ้งเตือนตอบกลับ (Toasts Feedbacks) ทำงานแบบเรียลไทม์ เพิ่มคะแนน UX/UI ให้กับผู้ใช้งาน</li>
               <li>ระบบ **Soft Delete & Audit Log** ทำงานสมบูรณ์แบบ ช่วยปกป้องการสูญหายของข้อมูลสำคัญ</li>
               <li>ระบบ **Permission-Based & Multi-Role** ทำงานสมบูรณ์แบบ ทั้งการระบุบทบาทควบใน D1 และการเพิ่มปุ่มสลับมุมมองโหมดทำงาน (Context Switcher) เสริม UX</li>
+              <li>ระบบ **Safe Deletion & Former Researcher Label** ป้องกันข้อมูลและ KPI เสียหาย โดยติดวงเล็บเครื่องหมาย *(พ้นสภาพ)* เมื่อสมาชิกถูกลบสำเร็จ</li>
               <li>มีการเตรียมความพร้อมสำหรับการทำระบบนำเข้าข้อมูลปริมาณมาก (Bulk Import) เพื่อรองรับรายชื่อนักวิจัย 100+ คน</li>
             </ul>
           </div>
