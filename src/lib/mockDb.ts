@@ -3,7 +3,8 @@ export interface MockUser {
   id: string;
   name: string;
   email: string;
-  role: 'RESEARCHER' | 'STAFF' | 'EXECUTIVE';
+  role: string;
+  roles?: string[];
   isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -120,7 +121,7 @@ const defaultData: DBStructure = {
       id: 'user-4',
       name: 'รศ.นพ. ทรงพล บริหาร (ผู้บริหาร)',
       email: 'songpol.s@iram.edu',
-      role: 'EXECUTIVE',
+      role: 'RESEARCHER,EXECUTIVE',
       isDeleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -317,14 +318,24 @@ const logAction = (tableName: string, recordId: string, action: 'CREATE' | 'UPDA
   writeDb(db);
 };
 
+// Helper to map and decode user roles
+const mapUserRoles = (u: any): MockUser => {
+  if (!u) return u;
+  return {
+    ...u,
+    roles: u.role ? u.role.split(',') : [],
+  };
+};
+
 export const mockDb = {
   // Users CRUD
   users: {
     findMany: async () => {
-      return readDb().users.filter((u) => !u.isDeleted);
+      return readDb().users.filter((u) => !u.isDeleted).map(mapUserRoles);
     },
     findUnique: async (id: string) => {
-      return readDb().users.find((u) => u.id === id && !u.isDeleted) || null;
+      const u = readDb().users.find((u) => u.id === id && !u.isDeleted);
+      return u ? mapUserRoles(u) : null;
     },
     create: async (data: Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
       const db = readDb();
@@ -338,7 +349,7 @@ export const mockDb = {
       db.users.push(newUser);
       writeDb(db);
       logAction('irUser', newUser.id, 'CREATE', null, newUser, performedBy);
-      return newUser;
+      return mapUserRoles(newUser);
     },
     update: async (id: string, data: Partial<Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
@@ -352,7 +363,7 @@ export const mockDb = {
       };
       writeDb(db);
       logAction('irUser', id, 'UPDATE', oldVal, db.users[idx], performedBy);
-      return db.users[idx];
+      return mapUserRoles(db.users[idx]);
     },
     delete: async (id: string, performedBy?: string | null) => {
       const db = readDb();
@@ -366,7 +377,7 @@ export const mockDb = {
       writeDb(db);
       
       logAction('irUser', id, 'DELETE', oldVal, null, performedBy);
-      return oldVal;
+      return mapUserRoles(oldVal);
     },
   },
 
@@ -378,7 +389,7 @@ export const mockDb = {
         .filter((p) => !p.isDeleted)
         .map((p) => ({
           ...p,
-          leader: db.users.find((u) => u.id === p.leaderId),
+          leader: mapUserRoles(db.users.find((u) => u.id === p.leaderId)),
         }));
     },
     findUnique: async (id: string) => {
@@ -387,7 +398,7 @@ export const mockDb = {
       if (!p) return null;
       return {
         ...p,
-        leader: db.users.find((u) => u.id === p.leaderId),
+        leader: mapUserRoles(db.users.find((u) => u.id === p.leaderId)),
       };
     },
     create: async (data: Omit<MockProject, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
@@ -404,7 +415,7 @@ export const mockDb = {
       logAction('irResearchProject', newProj.id, 'CREATE', null, newProj, performedBy);
       return {
         ...newProj,
-        leader: db.users.find((u) => u.id === newProj.leaderId),
+        leader: mapUserRoles(db.users.find((u) => u.id === newProj.leaderId)),
       };
     },
     update: async (id: string, data: Partial<Omit<MockProject, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
@@ -421,7 +432,7 @@ export const mockDb = {
       logAction('irResearchProject', id, 'UPDATE', oldVal, db.projects[idx], performedBy);
       return {
         ...db.projects[idx],
-        leader: db.users.find((u) => u.id === db.projects[idx].leaderId),
+        leader: mapUserRoles(db.users.find((u) => u.id === db.projects[idx].leaderId)),
       };
     },
     delete: async (id: string, performedBy?: string | null) => {
@@ -449,7 +460,7 @@ export const mockDb = {
         .map((p) => ({
           ...p,
           project: db.projects.find((proj) => proj.id === p.projectId) || null,
-          author: db.users.find((u) => u.id === p.authorId),
+          author: mapUserRoles(db.users.find((u) => u.id === p.authorId)),
         }));
     },
     findUnique: async (id: string) => {
@@ -459,7 +470,7 @@ export const mockDb = {
       return {
         ...p,
         project: db.projects.find((proj) => proj.id === p.projectId) || null,
-        author: db.users.find((u) => u.id === p.authorId),
+        author: mapUserRoles(db.users.find((u) => u.id === p.authorId)),
       };
     },
     create: async (data: Omit<MockPublication, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
@@ -477,7 +488,7 @@ export const mockDb = {
       return {
         ...newPub,
         project: db.projects.find((proj) => proj.id === newPub.projectId) || null,
-        author: db.users.find((u) => u.id === newPub.authorId),
+        author: mapUserRoles(db.users.find((u) => u.id === newPub.authorId)),
       };
     },
     update: async (id: string, data: Partial<Omit<MockPublication, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
@@ -495,7 +506,7 @@ export const mockDb = {
       return {
         ...db.publications[idx],
         project: db.projects.find((proj) => proj.id === db.publications[idx].projectId) || null,
-        author: db.users.find((u) => u.id === db.publications[idx].authorId),
+        author: mapUserRoles(db.users.find((u) => u.id === db.publications[idx].authorId)),
       };
     },
     delete: async (id: string, performedBy?: string | null) => {
@@ -523,7 +534,7 @@ export const mockDb = {
         .map((p) => ({
           ...p,
           project: db.projects.find((proj) => proj.id === p.projectId) || null,
-          presenter: db.users.find((u) => u.id === p.presenterId),
+          presenter: mapUserRoles(db.users.find((u) => u.id === p.presenterId)),
         }));
     },
     findUnique: async (id: string) => {
@@ -533,7 +544,7 @@ export const mockDb = {
       return {
         ...p,
         project: db.projects.find((proj) => proj.id === p.projectId) || null,
-        presenter: db.users.find((u) => u.id === p.presenterId),
+        presenter: mapUserRoles(db.users.find((u) => u.id === p.presenterId)),
       };
     },
     create: async (data: Omit<MockPresentation, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
@@ -551,7 +562,7 @@ export const mockDb = {
       return {
         ...newPres,
         project: db.projects.find((proj) => proj.id === newPres.projectId) || null,
-        presenter: db.users.find((u) => u.id === newPres.presenterId),
+        presenter: mapUserRoles(db.users.find((u) => u.id === newPres.presenterId)),
       };
     },
     update: async (id: string, data: Partial<Omit<MockPresentation, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
@@ -569,7 +580,7 @@ export const mockDb = {
       return {
         ...db.presentations[idx],
         project: db.projects.find((proj) => proj.id === db.presentations[idx].projectId) || null,
-        presenter: db.users.find((u) => u.id === db.presentations[idx].presenterId),
+        presenter: mapUserRoles(db.users.find((u) => u.id === db.presentations[idx].presenterId)),
       };
     },
     delete: async (id: string, performedBy?: string | null) => {
@@ -596,8 +607,8 @@ export const mockDb = {
         .filter((c) => !c.isDeleted)
         .map((c) => ({
           ...c,
-          advisor: db.users.find((u) => u.id === c.advisorId),
-          requester: db.users.find((u) => u.id === c.requesterId),
+          advisor: mapUserRoles(db.users.find((u) => u.id === c.advisorId)),
+          requester: mapUserRoles(db.users.find((u) => u.id === c.requesterId)),
         }));
     },
     findUnique: async (id: string) => {
@@ -606,8 +617,8 @@ export const mockDb = {
       if (!c) return null;
       return {
         ...c,
-        advisor: db.users.find((u) => u.id === c.advisorId),
-        requester: db.users.find((u) => u.id === c.requesterId),
+        advisor: mapUserRoles(db.users.find((u) => u.id === c.advisorId)),
+        requester: mapUserRoles(db.users.find((u) => u.id === c.requesterId)),
       };
     },
     create: async (data: Omit<MockConsultation, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
@@ -624,8 +635,8 @@ export const mockDb = {
       logAction('irConsultation', newConsult.id, 'CREATE', null, newConsult, performedBy);
       return {
         ...newConsult,
-        advisor: db.users.find((u) => u.id === newConsult.advisorId),
-        requester: db.users.find((u) => u.id === newConsult.requesterId),
+        advisor: mapUserRoles(db.users.find((u) => u.id === newConsult.advisorId)),
+        requester: mapUserRoles(db.users.find((u) => u.id === newConsult.requesterId)),
       };
     },
     update: async (id: string, data: Partial<Omit<MockConsultation, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
@@ -642,8 +653,8 @@ export const mockDb = {
       logAction('irConsultation', id, 'UPDATE', oldVal, db.consultations[idx], performedBy);
       return {
         ...db.consultations[idx],
-        advisor: db.users.find((u) => u.id === db.consultations[idx].advisorId),
-        requester: db.users.find((u) => u.id === db.consultations[idx].requesterId),
+        advisor: mapUserRoles(db.users.find((u) => u.id === db.consultations[idx].advisorId)),
+        requester: mapUserRoles(db.users.find((u) => u.id === db.consultations[idx].requesterId)),
       };
     },
     delete: async (id: string, performedBy?: string | null) => {

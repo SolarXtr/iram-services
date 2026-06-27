@@ -24,12 +24,15 @@ import {
   HelpCircle
 } from 'lucide-react';
 
+import { Permission, UserRole, ROLE_LABELS, getPermissionsForRoles, hasPermission as hasPermissionHelper } from '@/lib/permissions';
+
 // Types matching mockDb / Prisma
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'RESEARCHER' | 'STAFF' | 'EXECUTIVE';
+  role: string;
+  roles?: string[];
 }
 
 interface Project {
@@ -74,7 +77,8 @@ interface Consultation {
 export default function ResearchManagementDashboard() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations' | 'db-status' | 'db-explorer'>('dashboard');
-  const [currentRole, setCurrentRole] = useState<'RESEARCHER' | 'STAFF' | 'EXECUTIVE'>('STAFF');
+  const [currentUserId, setCurrentUserId] = useState<string>('user-3');
+  const [activeRole, setActiveRole] = useState<UserRole>('STAFF');
 
   // Data States
   const [users, setUsers] = useState<User[]>([]);
@@ -118,8 +122,40 @@ export default function ResearchManagementDashboard() {
   const [editingPublication, setEditingPublication] = useState<Publication | null>(null);
   const [editingConsultation, setEditingConsultation] = useState<Consultation | null>(null);
 
+  const currentUser = users.find((u) => u.id === currentUserId) || {
+    id: 'user-3',
+    name: 'คุณ วันดี ทำงานดี (เจ้าหน้าที่)',
+    email: 'wandee.w@iram.edu',
+    role: 'STAFF',
+    roles: ['STAFF']
+  };
+
+  const currentUserRoles = (currentUser ? (currentUser.roles || (currentUser.role ? currentUser.role.split(',') : [])) : ['STAFF']) as UserRole[];
+
+  useEffect(() => {
+    if (currentUserRoles.length > 0 && !currentUserRoles.includes(activeRole)) {
+      setActiveRole(currentUserRoles[0]);
+    }
+  }, [currentUserId, currentUserRoles, activeRole]);
+
+  const hasPermission = (permission: Permission) => {
+    return hasPermissionHelper([activeRole], permission);
+  };
+
+  const canEditProject = (p: Project) => {
+    return hasPermission('EDIT_ALL_RESEARCH') || (hasPermission('EDIT_OWN_RESEARCH') && p.leaderId === currentUserId);
+  };
+
+  const canEditPublication = (pub: Publication) => {
+    return hasPermission('EDIT_ALL_RESEARCH') || (hasPermission('EDIT_OWN_RESEARCH') && pub.authorId === currentUserId);
+  };
+
+  const canEditConsultation = (c: Consultation) => {
+    return hasPermission('EDIT_ALL_RESEARCH') || (hasPermission('EDIT_OWN_RESEARCH') && c.requesterId === currentUserId);
+  };
+
   // Form States
-  const [userForm, setUserForm] = useState<{ name: string; email: string; role: 'RESEARCHER' | 'STAFF' | 'EXECUTIVE' }>({ name: '', email: '', role: 'RESEARCHER' });
+  const [userForm, setUserForm] = useState<{ name: string; email: string; rolesList: UserRole[] }>({ name: '', email: '', rolesList: ['RESEARCHER'] });
   const [projectForm, setProjectForm] = useState<{
     title: string;
     status: 'PROPOSED' | 'APPROVED' | 'ONGOING' | 'COMPLETED' | 'TERMINATED';
@@ -255,12 +291,16 @@ export default function ResearchManagementDashboard() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userForm),
+        body: JSON.stringify({
+          name: userForm.name,
+          email: userForm.email,
+          role: userForm.rolesList.join(','),
+        }),
       });
       if (res.ok) {
         setIsUserModalOpen(false);
         setEditingUser(null);
-        setUserForm({ name: '', email: '', role: 'RESEARCHER' });
+        setUserForm({ name: '', email: '', rolesList: ['RESEARCHER'] });
         fetchData();
       }
     } catch (e) {
@@ -270,14 +310,15 @@ export default function ResearchManagementDashboard() {
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
-    setUserForm({ name: user.name, email: user.email, role: user.role });
+    const rolesList = (user.roles || (user.role ? user.role.split(',') : [])) as UserRole[];
+    setUserForm({ name: user.name, email: user.email, rolesList });
     setIsUserModalOpen(true);
   };
 
   const handleDeleteUser = async (id: string) => {
     if (confirm('คุณต้องการลบผู้ใช้นี้ใช่หรือไม่?')) {
       try {
-        await fetch(`/api/users/${id}`, { method: 'DELETE' });
+        await fetch(`/api/users/${id}?performedBy=${currentUserId}`, { method: 'DELETE' });
         fetchData();
       } catch (e) {
         console.error(e);
@@ -651,24 +692,45 @@ export default function ResearchManagementDashboard() {
           </div>
 
           {/* Quick Role Impersonator Switcher */}
-          <div className="flex items-center gap-3 bg-[#f9f5ee] border border-[#ebdccf] px-4 py-2 rounded-2xl shadow-inner shadow-black/20">
-            <UserCheck className="h-4.5 w-4.5 text-[#b45309]" />
-            <span className="text-xs font-semibold text-[#4c3c31]">จำลองสิทธิ์:</span>
-            <select
-              value={currentRole}
-              onChange={(e) => setCurrentRole(e.target.value as any)}
-              className="bg-[#fdfcf9] text-xs font-bold text-[#3c2f25] border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors"
-            >
-              <option value="STAFF">เจ้าหน้าที่ (Staff)</option>
-              <option value="RESEARCHER">นักวิจัย (Researcher)</option>
-              <option value="EXECUTIVE">ผู้บริหาร (Executive)</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-4 bg-[#f9f5ee] border border-[#ebdccf] px-4 py-2 rounded-2xl shadow-inner shadow-black/20">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-4.5 w-4.5 text-[#b45309]" />
+              <span className="text-xs font-semibold text-[#4c3c31]">จำลองผู้ใช้:</span>
+              <select
+                value={currentUserId}
+                onChange={(e) => setCurrentUserId(e.target.value)}
+                className="bg-[#fdfcf9] text-xs font-bold text-[#3c2f25] border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {currentUserRoles.length > 1 && (
+              <div className="flex items-center gap-2 border-l border-[#ebdccf] pl-4">
+                <span className="text-xs font-semibold text-[#4c3c31]">โหมดการทำงาน:</span>
+                <select
+                  value={activeRole}
+                  onChange={(e) => setActiveRole(e.target.value as UserRole)}
+                  className="bg-amber-100 text-xs font-bold text-amber-900 border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                >
+                  {currentUserRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role] || role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </header>
 
         {/* Dashboard Pages Body */}
         <div className="flex-1 overflow-y-auto p-8 bg-[#f9f5ee]">
-          {currentRole !== 'STAFF' && (
+          {!hasPermission('MANAGE_USERS') && (
             <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-xs text-[#b45309] font-medium flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 shadow-sm">
               <div>
                 <span className="font-bold">⚠️ แนะนำสิทธิ์การใช้งาน:</span> หน้านี้คือหน้าจัดการหลังบ้านสำหรับ <strong>เจ้าหน้าที่ตรวจดูข้อมูลภาพรวม</strong>
@@ -1062,9 +1124,9 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#fdfcf9] border border-[#ebdccf] text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
                   />
                 </div>
-                {currentRole === 'STAFF' && (
+                {hasPermission('MANAGE_USERS') && (
                   <button
-                    onClick={() => { setEditingUser(null); setUserForm({ name: '', email: '', role: 'RESEARCHER' }); setIsUserModalOpen(true); }}
+                    onClick={() => { setEditingUser(null); setUserForm({ name: '', email: '', rolesList: ['RESEARCHER'] }); setIsUserModalOpen(true); }}
                     className="flex items-center gap-2 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] font-semibold text-sm px-4.5 py-2.5 rounded-xl shadow-lg shadow-amber-600/10 active:scale-95 transition-all"
                   >
                     <Plus className="h-4.5 w-4.5" />
@@ -1080,45 +1142,53 @@ export default function ResearchManagementDashboard() {
                       <th className="px-6 py-4">ชื่อ-นามสกุล</th>
                       <th className="px-6 py-4">อีเมลติดต่อ</th>
                       <th className="px-6 py-4">บทบาทของระบบ</th>
-                      {currentRole === 'STAFF' && <th className="px-6 py-4 text-right">เครื่องมือ</th>}
+                      {hasPermission('MANAGE_USERS') && <th className="px-6 py-4 text-right">เครื่องมือ</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#ebdccf] text-sm">
                     {users
                       .filter((u) => u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-                      .map((u) => (
-                        <tr key={u.id} className="hover:bg-[#f9f5ee]/40 transition-colors">
-                          <td className="px-6 py-4 font-semibold text-[#3c2f25]">{u.name}</td>
-                          <td className="px-6 py-4 text-[#7a685c]">{u.email}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                              u.role === 'RESEARCHER' ? 'bg-[#fdf6e2] text-[#b45309] border border-[#fbe3b5]' :
-                              u.role === 'STAFF' ? 'bg-emerald-950 text-emerald-400 border border-emerald-900' :
-                              'bg-amber-950 text-amber-400 border border-amber-900'
-                            }`}>
-                              {u.role}
-                            </span>
-                          </td>
-                          {currentRole === 'STAFF' && (
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => handleEditUser(u)}
-                                  className="p-2 text-[#7a685c] hover:text-[#3c2f25] rounded-lg hover:bg-slate-800 transition-colors"
-                                >
-                                  <Edit className="h-4.5 w-4.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(u.id)}
-                                  className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/20 transition-colors"
-                                >
-                                  <Trash2 className="h-4.5 w-4.5" />
-                                </button>
+                      .map((u) => {
+                        const userRoles = u.roles || (u.role ? u.role.split(',') : []) as UserRole[];
+                        return (
+                          <tr key={u.id} className="hover:bg-[#f9f5ee]/40 transition-colors">
+                            <td className="px-6 py-4 font-semibold text-[#3c2f25]">{u.name}</td>
+                            <td className="px-6 py-4 text-[#7a685c]">{u.email}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-wrap gap-1.5">
+                                {userRoles.map((r) => (
+                                  <span key={r} className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                    r === 'RESEARCHER' ? 'bg-[#fdf6e2] text-[#b45309] border border-[#fbe3b5]' :
+                                    r === 'STAFF' ? 'bg-emerald-950 text-emerald-400 border border-emerald-900' :
+                                    r === 'EXECUTIVE' ? 'bg-amber-950 text-amber-400 border border-amber-900' :
+                                    'bg-slate-900 text-slate-400 border border-slate-700'
+                                  }`}>
+                                    {r}
+                                  </span>
+                                ))}
                               </div>
                             </td>
-                          )}
-                        </tr>
-                      ))}
+                            {hasPermission('MANAGE_USERS') && (
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleEditUser(u)}
+                                    className="p-2 text-[#7a685c] hover:text-[#3c2f25] rounded-lg hover:bg-slate-800 transition-colors"
+                                  >
+                                    <Edit className="h-4.5 w-4.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(u.id)}
+                                    className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/20 transition-colors"
+                                  >
+                                    <Trash2 className="h-4.5 w-4.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1184,7 +1254,7 @@ export default function ResearchManagementDashboard() {
                           </div>
                           
                           {/* Project Actions */}
-                          {currentRole !== 'EXECUTIVE' && (
+                          {hasPermission('DELETE_RESEARCH') && (
                             <div className="flex items-center gap-1.5 shrink-0">
                               {/* Edit button disabled */ null}
                               <button
@@ -1284,7 +1354,7 @@ export default function ResearchManagementDashboard() {
                           <h3 className="text-base font-bold text-[#3c2f25] mt-3.5 leading-snug">{p.title}</h3>
                         </div>
 
-                        {currentRole === 'RESEARCHER' && p.authorId === users.find((u) => u.role === 'RESEARCHER')?.id && (
+                        {canEditPublication(p) && (
                           <div className="flex items-center gap-1.5">
                             {/* Edit button disabled */ null}
                             <button
@@ -1322,7 +1392,7 @@ export default function ResearchManagementDashboard() {
                             </span>
                             
                             {/* Executive Approver action buttons */}
-                            {currentRole === 'EXECUTIVE' && p.rewardStatus === 'PENDING' && (
+                            {hasPermission('APPROVE_REWARD') && p.rewardStatus === 'PENDING' && (
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleRewardStatusChange(p.id, 'APPROVED')}
@@ -1377,7 +1447,7 @@ export default function ResearchManagementDashboard() {
                       <th className="px-6 py-4">ผู้ขอรับคำปรึกษา (PI)</th>
                       <th className="px-6 py-4">ผู้ให้คำปรึกษา (Advisor)</th>
                       <th className="px-6 py-4">สถานะคิว</th>
-                      {currentRole !== 'EXECUTIVE' && <th className="px-6 py-4 text-right">จัดการคิว</th>}
+                      {(hasPermission('MANAGE_CEU_SCHEDULE') || hasPermission('CANCEL_OWN_CONSULT') || hasPermission('DELETE_RESEARCH')) && <th className="px-6 py-4 text-right">จัดการคิว</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#ebdccf] text-sm">
@@ -1418,10 +1488,10 @@ export default function ResearchManagementDashboard() {
                               {c.status}
                             </span>
                           </td>
-                          {currentRole !== 'EXECUTIVE' && (
+                          {(hasPermission('MANAGE_CEU_SCHEDULE') || hasPermission('CANCEL_OWN_CONSULT') || hasPermission('DELETE_RESEARCH')) && (
                             <td className="px-6 py-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {currentRole === 'STAFF' && c.status === 'SCHEDULED' && (
+                                {canEditConsultation(c) && c.status === 'SCHEDULED' && (
                                   <>
                                     <button
                                       onClick={() => handleConsultStatusChange(c.id, 'COMPLETED')}
@@ -1440,12 +1510,14 @@ export default function ResearchManagementDashboard() {
                                   </>
                                 )}
                                 {/* Edit button disabled */ null}
-                                <button
-                                  onClick={() => handleDeleteConsultation(c.id)}
-                                  className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 rounded"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                {hasPermission('DELETE_RESEARCH') && (
+                                  <button
+                                    onClick={() => handleDeleteConsultation(c.id)}
+                                    className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 rounded"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           )}
@@ -1490,16 +1562,35 @@ export default function ResearchManagementDashboard() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-[#7a685c] block mb-2">สิทธิ์การเข้าใช้</label>
-                <select
-                  value={userForm.role}
-                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value as any })}
-                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
-                >
-                  <option value="RESEARCHER">นักวิจัย (RESEARCHER)</option>
-                  <option value="STAFF">เจ้าหน้าที่ (STAFF)</option>
-                  <option value="EXECUTIVE">ผู้บริหาร (EXECUTIVE)</option>
-                </select>
+                <label className="text-xs font-semibold text-[#7a685c] block mb-2.5">บทบาทและสิทธิ์ระบบ (เลือกได้มากกว่า 1)</label>
+                <div className="space-y-2 bg-[#f9f5ee] border border-[#ebdccf] rounded-xl p-3.5">
+                  {(['RESEARCHER', 'STAFF', 'EXECUTIVE', 'STAFF_CEU'] as UserRole[]).map((r) => {
+                    const isChecked = userForm.rolesList.includes(r);
+                    return (
+                      <label key={r} className="flex items-center gap-3 text-xs text-[#3c2f25] font-semibold cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            if (isChecked) {
+                              setUserForm({
+                                ...userForm,
+                                rolesList: userForm.rolesList.filter((x) => x !== r)
+                              });
+                            } else {
+                              setUserForm({
+                                ...userForm,
+                                rolesList: [...userForm.rolesList, r]
+                              });
+                            }
+                          }}
+                          className="rounded text-[#d97706] focus:ring-[#d97706]"
+                        />
+                        <span>{ROLE_LABELS[r] || r}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-900">
                 <button

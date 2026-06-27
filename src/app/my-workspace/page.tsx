@@ -18,11 +18,14 @@ import {
   Presentation as PresIcon
 } from 'lucide-react';
 
+import { Permission, UserRole, ROLE_LABELS, getPermissionsForRoles, hasPermission as hasPermissionHelper } from '@/lib/permissions';
+
 interface UserType {
   id: string;
   name: string;
   email: string;
-  role: 'RESEARCHER' | 'STAFF' | 'EXECUTIVE';
+  role: string;
+  roles?: string[];
 }
 
 interface Project {
@@ -163,7 +166,7 @@ export default function ResearcherWorkspace() {
       if (Array.isArray(resUsers)) {
         setAllUsers(resUsers);
         // Find first researcher and select their ID by default
-        const firstResearcher = resUsers.find(u => u.role === 'RESEARCHER');
+        const firstResearcher = resUsers.find(u => u.role.split(',').includes('RESEARCHER'));
         if (firstResearcher && !selectedResearcherId) {
           setSelectedResearcherId(firstResearcher.id);
         }
@@ -214,7 +217,20 @@ export default function ResearcherWorkspace() {
   const upcomingConsultations = myConsultations.filter(c => new Date(c.appointmentTime) >= new Date() && c.status === 'SCHEDULED');
   const pastConsultations = myConsultations.filter(c => new Date(c.appointmentTime) < new Date() || c.status !== 'SCHEDULED');
 
+  const [activeRole, setActiveRole] = useState<UserRole>('RESEARCHER');
+
   const selectedResearcher = allUsers.find(u => u.id === selectedResearcherId);
+  const selectedResearcherRoles = (selectedResearcher ? (selectedResearcher.roles || (selectedResearcher.role ? selectedResearcher.role.split(',') : [])) : ['RESEARCHER']) as UserRole[];
+
+  useEffect(() => {
+    if (selectedResearcherRoles.length > 0 && !selectedResearcherRoles.includes(activeRole)) {
+      setActiveRole(selectedResearcherRoles[0]);
+    }
+  }, [selectedResearcherId, selectedResearcherRoles, activeRole]);
+
+  const hasPermission = (permission: Permission) => {
+    return hasPermissionHelper([activeRole], permission);
+  };
 
   // Edit Initiator Functions
   const handleEditProject = (p: Project) => {
@@ -504,28 +520,47 @@ export default function ResearcherWorkspace() {
             <p className="text-sm text-[#7a685c] mt-1.5 font-medium">จัดการเสนอขอโครงการวิจัย ยื่นเคลมรางวัลผลงานตีพิมพ์นิตยสาร และจองคิว CEU Advisory</p>
           </div>
 
-          <div className="flex items-center gap-3 bg-[#f9f5ee] border border-[#ebdccf] px-4.5 py-3 rounded-2xl shadow-sm self-start md:self-auto">
-            <span className="text-xs font-bold text-[#7a685c] whitespace-nowrap">จำลองเข้าสู่ระบบเป็น:</span>
-            <div className="relative">
-              <select
-                value={selectedResearcherId}
-                onChange={(e) => {
-                  setSelectedResearcherId(e.target.value);
-                  setEditingProject(null);
-                  setEditingPublication(null);
-                  setEditingConsultation(null);
-                  setEditingPresentation(null);
-                }}
-                className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl pl-3 pr-8 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] appearance-none cursor-pointer"
-              >
-                {allUsers
-                  .filter(u => u.role === 'RESEARCHER' || u.role === 'STAFF')
-                  .map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                  ))
-                }
-              </select>
+          <div className="flex flex-wrap items-center gap-4 bg-[#f9f5ee] border border-[#ebdccf] px-4.5 py-3 rounded-2xl shadow-sm self-start md:self-auto">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#7a685c] whitespace-nowrap">จำลองเข้าสู่ระบบเป็น:</span>
+              <div className="relative">
+                <select
+                  value={selectedResearcherId}
+                  onChange={(e) => {
+                    setSelectedResearcherId(e.target.value);
+                    setEditingProject(null);
+                    setEditingPublication(null);
+                    setEditingConsultation(null);
+                    setEditingPresentation(null);
+                  }}
+                  className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl pl-3 pr-8 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] appearance-none cursor-pointer"
+                >
+                  {allUsers
+                    .filter(u => u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF'))
+                    .map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                    ))
+                  }
+                </select>
+              </div>
             </div>
+
+            {selectedResearcherRoles.length > 1 && (
+              <div className="flex items-center gap-2 border-l border-[#ebdccf] pl-4">
+                <span className="text-xs font-bold text-[#7a685c] whitespace-nowrap">โหมดสิทธิ์:</span>
+                <select
+                  value={activeRole}
+                  onChange={(e) => setActiveRole(e.target.value as UserRole)}
+                  className="bg-amber-100 text-xs font-bold text-amber-900 border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                >
+                  {selectedResearcherRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role] || role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </header>
 
@@ -611,7 +646,7 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          {selectedResearcher?.role === 'STAFF' && (
+                          {hasPermission('DELETE_RESEARCH') && (
                             <button
                               onClick={() => handleDeleteProject(p.id)}
                               className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
@@ -740,7 +775,7 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          {selectedResearcher?.role === 'STAFF' && (
+                          {hasPermission('DELETE_RESEARCH') && (
                             <button
                               onClick={() => handleDeletePublication(p.id)}
                               className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
@@ -818,7 +853,7 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          {selectedResearcher?.role === 'STAFF' && (
+                          {hasPermission('DELETE_RESEARCH') && (
                             <button
                               onClick={() => handleDeleteConsultation(c.id)}
                               className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
@@ -870,7 +905,7 @@ export default function ResearcherWorkspace() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          {selectedResearcher?.role === 'STAFF' && (
+                          {hasPermission('DELETE_RESEARCH') && (
                             <button
                               onClick={() => handleDeleteConsultation(c.id)}
                               className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
@@ -951,7 +986,7 @@ export default function ResearcherWorkspace() {
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                        {selectedResearcher?.role === 'STAFF' && (
+                        {hasPermission('DELETE_RESEARCH') && (
                           <button
                             onClick={() => handleDeletePresentation(p.id)}
                             className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
@@ -1266,7 +1301,7 @@ export default function ResearcherWorkspace() {
                 >
                   <option value="" disabled>เลือกที่ปรึกษา...</option>
                   {allUsers
-                    .filter(u => u.role === 'STAFF')
+                    .filter(u => u.role.split(',').includes('STAFF'))
                     .map(u => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))

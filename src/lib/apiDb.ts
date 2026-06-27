@@ -74,12 +74,21 @@ const writeRealAuditLog = async (
   }
 };
 
+// Helper to map and decode user roles in D1 records
+const mapUserRoles = (u: any) => {
+  if (!u) return u;
+  return {
+    ...u,
+    roles: u.role ? u.role.split(',') : [],
+  };
+};
+
 // Database handlers for D1 (Production)
 const realDbHandlers = {
   users: {
     findMany: async () => {
       const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "createdAt" DESC');
-      return res.rows.map((r: any) => ({
+      return res.rows.map((r: any) => mapUserRoles({
         ...r,
         createdAt: toIsoString(r.createdAt),
         updatedAt: toIsoString(r.updatedAt),
@@ -89,11 +98,11 @@ const realDbHandlers = {
       const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "irUser" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
       const r = res.rows[0];
       if (!r) return null;
-      return {
+      return mapUserRoles({
         ...r,
         createdAt: toIsoString(r.createdAt),
         updatedAt: toIsoString(r.updatedAt),
-      };
+      });
     },
     create: async (data: any, performedBy?: string | null) => {
       const id = data.id || crypto.randomUUID();
@@ -102,11 +111,11 @@ const realDbHandlers = {
         [id, data.name, data.email, data.role]
       );
       const r = res.rows[0];
-      const result = {
+      const result = mapUserRoles({
         ...r,
         createdAt: toIsoString(r.createdAt),
         updatedAt: toIsoString(r.updatedAt),
-      };
+      });
       await writeRealAuditLog('irUser', id, 'CREATE', null, result, performedBy);
       return result;
     },
@@ -124,11 +133,11 @@ const realDbHandlers = {
         [name, email, role, id]
       );
       const r = res.rows[0];
-      const result = {
+      const result = mapUserRoles({
         ...r,
         createdAt: toIsoString(r.createdAt),
         updatedAt: toIsoString(r.updatedAt),
-      };
+      });
       await writeRealAuditLog('irUser', id, 'UPDATE', current, result, performedBy);
       return result;
     },
@@ -139,11 +148,11 @@ const realDbHandlers = {
 
       const res = await dbQuery('UPDATE "irUser" SET "isDeleted" = 1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *', [id]);
       const r = res.rows[0];
-      const result = {
+      const result = mapUserRoles({
         ...r,
         createdAt: toIsoString(r.createdAt),
         updatedAt: toIsoString(r.updatedAt),
-      };
+      });
       await writeRealAuditLog('irUser', id, 'DELETE', current, null, performedBy);
       return result;
     },
@@ -174,12 +183,12 @@ const realDbHandlers = {
         leaderId: row.leaderId,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
-        leader: {
+        leader: mapUserRoles({
           id: row.leaderId,
           name: row.leaderName,
           email: row.leaderEmail,
           role: row.leaderRole
-        }
+        })
       }));
     },
     findUnique: async (id: string) => {
@@ -208,12 +217,12 @@ const realDbHandlers = {
         leaderId: row.leaderId,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
-        leader: {
+        leader: mapUserRoles({
           id: row.leaderId,
           name: row.leaderName,
           email: row.leaderEmail,
           role: row.leaderRole
-        }
+        })
       };
     },
     create: async (data: any, performedBy?: string | null) => {
@@ -317,12 +326,12 @@ const realDbHandlers = {
           department: row.projectDepartment,
           leaderId: row.projectLeaderId
         } : null,
-        author: {
+        author: mapUserRoles({
           id: row.authorId,
           name: row.authorName,
           email: row.authorEmail,
           role: row.authorRole
-        }
+        })
       }));
     },
     findUnique: async (id: string) => {
@@ -361,12 +370,12 @@ const realDbHandlers = {
           department: row.projectDepartment,
           leaderId: row.projectLeaderId
         } : null,
-        author: {
+        author: mapUserRoles({
           id: row.authorId,
           name: row.authorName,
           email: row.authorEmail,
           role: row.authorRole
-        }
+        })
       };
     },
     create: async (data: any, performedBy?: string | null) => {
@@ -459,12 +468,12 @@ const realDbHandlers = {
           department: row.projectDepartment,
           leaderId: row.projectLeaderId
         } : null,
-        presenter: {
+        presenter: mapUserRoles({
           id: row.presenterId,
           name: row.presenterName,
           email: row.presenterEmail,
           role: row.presenterRole
-        }
+        })
       }));
     },
     findUnique: async (id: string) => {
@@ -501,12 +510,12 @@ const realDbHandlers = {
           department: row.projectDepartment,
           leaderId: row.projectLeaderId
         } : null,
-        presenter: {
+        presenter: mapUserRoles({
           id: row.presenterId,
           name: row.presenterName,
           email: row.presenterEmail,
           role: row.presenterRole
-        }
+        })
       };
     },
     create: async (data: any, performedBy?: string | null) => {
@@ -583,18 +592,18 @@ const realDbHandlers = {
         requesterId: row.requesterId,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
-        advisor: {
+        advisor: mapUserRoles({
           id: row.advisorId,
           name: row.advisorName,
           email: row.advisorEmail,
           role: row.advisorRole
-        },
-        requester: {
+        }),
+        requester: mapUserRoles({
           id: row.requesterId,
           name: row.requesterName,
           email: row.requesterEmail,
           role: row.requesterRole
-        }
+        })
       }));
     },
     findUnique: async (id: string) => {
@@ -619,18 +628,18 @@ const realDbHandlers = {
         requesterId: row.requesterId,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
-        advisor: {
+        advisor: mapUserRoles({
           id: row.advisorId,
           name: row.advisorName,
           email: row.advisorEmail,
           role: row.advisorRole
-        },
-        requester: {
+        }),
+        requester: mapUserRoles({
           id: row.requesterId,
           name: row.requesterName,
           email: row.requesterEmail,
           role: row.requesterRole
-        }
+        })
       };
     },
     create: async (data: any, performedBy?: string | null) => {
