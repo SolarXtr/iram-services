@@ -248,13 +248,26 @@ export default function AboutProjectPage() {
               </div>
             </div>
 
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">การพัฒนาระบบสิทธิ์และบทบาทที่ยืดหยุ่น (Permission-Based & Multi-Role Access Control)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> เดิมระบบใช้โครงสร้างบทบาทแบบฮาร์ดโค้ดส่งผลให้ผู้ใช้ไม่สามารถมีหลายบทบาทซ้อนทับกันได้ (เช่น นักวิจัยที่เป็นผู้บริหาร) และการแก้ไขบทบาทเดิมส่งผลกระทบต่อสิทธิ์การทำงานทั้งหมดในโค้ด  
+                  <br /><strong>ทางแก้:</strong> เปลี่ยนผ่านสถาปัตยกรรมสู่ระบบสิทธิ์ย่อยแยกจำแนก (Fine-grained Permissions) ในโมดูลควบคุม <code>permissions.ts</code> และออกแบบระบบฐานข้อมูล D1 ให้เก็บบทบาทควบ (Comma-Separated) พร้อมพัฒนาหน้าจอให้มี <code>Context Switcher</code> สลับโหมดโหมดการทำงานได้แบบเรียลไทม์
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
  
         {/* Operational Results & Future Roadmap */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          {/* Results */}
+           {/* Results */}
           <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-3xl shadow-sm space-y-4">
             <h3 className="text-base font-bold text-[#3c2f25] border-b border-[#ebdccf] pb-2.5 flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-emerald-600" />
@@ -264,7 +277,8 @@ export default function AboutProjectPage() {
               <li>ระบบรันบน **Edge Infrastructure** โหลดหน้าเพจได้รวดเร็วภายในระยะเวลาหลักมิลลิวินาที</li>
               <li>การเชื่อมโยงฐานข้อมูล D1 มีความเสถียร รองรับการดึงข้อมูลพร้อมกันในหลากหลายเซสชัน</li>
               <li>ระบบการแจ้งเตือนตอบกลับ (Toasts Feedbacks) ทำงานแบบเรียลไทม์ เพิ่มคะแนน UX/UI ให้กับผู้ใช้งาน</li>
-              <li>ระบบ **Soft Delete & Audit Log** ทำงานสมบูรณ์แบบ ทั้งบนการจำลอง Local และระบบจริงออนไลน์ของ D1 ช่วยปกป้องการสูญหายของข้อมูลสำคัญ</li>
+              <li>ระบบ **Soft Delete & Audit Log** ทำงานสมบูรณ์แบบ ช่วยปกป้องการสูญหายของข้อมูลสำคัญ</li>
+              <li>ระบบ **Permission-Based & Multi-Role** ทำงานสมบูรณ์แบบ ทั้งการระบุบทบาทควบใน D1 และการเพิ่มปุ่มสลับมุมมองโหมดทำงาน (Context Switcher) เสริม UX</li>
               <li>มีการเตรียมความพร้อมสำหรับการทำระบบนำเข้าข้อมูลปริมาณมาก (Bulk Import) เพื่อรองรับรายชื่อนักวิจัย 100+ คน</li>
             </ul>
           </div>
@@ -277,6 +291,7 @@ export default function AboutProjectPage() {
             </h3>
             <ul className="text-xs text-[#7a685c] space-y-2.5 list-disc pl-4 leading-relaxed">
               <li>**ระบบความปลอดภัยจริง (Enterprise Auth)**: พัฒนาการล็อกอินจริงผ่านระบบ LDAP ของมหาวิทยาลัย หรือ OAuth2 แทนการจำลองบทบาท</li>
+              <li>**การควบคุมบทบาทจากฐานข้อมูลโดยตรง (Database-driven roles)**: ปรับปรุงการเพิ่ม/ลดสิทธิ์บทบาทที่ต้องการขยายในอนาคตผ่านโมดูลข้อมูลตรงโดยไม่ต้องแตะโค้ด</li>
               <li>**ระบบแจ้งเตือนผ่านช่องทางอื่น (Notification integration)**: ส่งอีเมลหรือ Line Notify เมื่อโครงการได้รับการอนุมัติ หรือคำปรึกษา CEU ถูกยกเลิก</li>
               <li>**กราฟวิเคราะห์ผลระดับผู้บริหาร (Advanced Executive Charts)**: แสดงอัตราความสำเร็จของโครงการวิจัยในแต่ละคณะในรูปแบบ Interactive Dashboard</li>
             </ul>
