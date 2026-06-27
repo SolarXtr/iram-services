@@ -33,6 +33,7 @@ interface User {
   email: string;
   role: string;
   roles?: string[];
+  isDeleted?: boolean;
 }
 
 interface Project {
@@ -318,10 +319,15 @@ export default function ResearchManagementDashboard() {
   const handleDeleteUser = async (id: string) => {
     if (confirm('คุณต้องการลบผู้ใช้นี้ใช่หรือไม่?')) {
       try {
-        await fetch(`/api/users/${id}?performedBy=${currentUserId}`, { method: 'DELETE' });
-        fetchData();
-      } catch (e) {
-        console.error(e);
+        const res = await fetch(`/api/users/${id}?performedBy=${currentUserId}`, { method: 'DELETE' });
+        if (res.ok) {
+          fetchData();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.error || 'ไม่สามารถลบผู้ใช้นี้ได้ เนื่องจากระบบตรวจพบบล็อกสิทธิ์การทำงาน');
+        }
+      } catch (e: any) {
+        alert(e.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
       }
     }
   };
@@ -1271,7 +1277,9 @@ export default function ResearchManagementDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pb-6 border-b border-slate-900 text-xs">
                           <div>
                             <span className="text-[#8a786c] font-medium block">หัวหน้าโครงการ (PI)</span>
-                            <span className="text-[#4c3c31] font-semibold mt-1 block">{p.leader?.name || 'ไม่พบผู้ใช้ในระบบ'}</span>
+                            <span className="text-[#4c3c31] font-semibold mt-1 block">
+                              {p.leader ? (p.leader.isDeleted ? `${p.leader.name} (พ้นสภาพ)` : p.leader.name) : 'ไม่พบผู้ใช้ในระบบ'}
+                            </span>
                           </div>
                           <div>
                             <span className="text-[#8a786c] font-medium block">ระยะเวลาดำเนินโครงการ</span>
@@ -1370,7 +1378,7 @@ export default function ResearchManagementDashboard() {
                       {/* Project info link and Reward Status block */}
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-6 border-t border-slate-900">
                         <div className="text-xs space-y-1">
-                          <p className="text-[#8a786c]">ผู้ขอรับรางวัล: <span className="text-[#4c3c31] font-semibold">{p.author?.name}</span></p>
+                          <p className="text-[#8a786c]">ผู้ขอรับรางวัล: <span className="text-[#4c3c31] font-semibold">{p.author ? (p.author.isDeleted ? `${p.author.name} (พ้นสภาพ)` : p.author.name) : 'ไม่พบผู้ใช้ในระบบ'}</span></p>
                           {p.project && (
                             <p className="text-[#8a786c]">โครงการวิจัยอ้างอิง: <span className="text-[#b45309] font-medium">{p.project.title}</span></p>
                           )}
@@ -1477,8 +1485,12 @@ export default function ResearchManagementDashboard() {
                               minute: '2-digit',
                             })} น.
                           </td>
-                          <td className="px-6 py-4 text-[#3c2f25] font-medium">{c.requester?.name}</td>
-                          <td className="px-6 py-4 text-[#4c3c31]">{c.advisor?.name}</td>
+                          <td className="px-6 py-4 text-[#3c2f25] font-medium">
+                            {c.requester ? (c.requester.isDeleted ? `${c.requester.name} (พ้นสภาพ)` : c.requester.name) : 'ไม่พบผู้ใช้ในระบบ'}
+                          </td>
+                          <td className="px-6 py-4 text-[#4c3c31]">
+                            {c.advisor ? (c.advisor.isDeleted ? `${c.advisor.name} (พ้นสภาพ)` : c.advisor.name) : 'ไม่พบผู้ใช้ในระบบ'}
+                          </td>
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                               c.status === 'SCHEDULED' ? 'bg-blue-950 text-blue-400 border border-blue-800' :

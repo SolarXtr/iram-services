@@ -26,6 +26,7 @@ interface UserType {
   email: string;
   role: string;
   roles?: string[];
+  isDeleted?: boolean;
 }
 
 interface Project {
@@ -838,7 +839,9 @@ export default function ResearcherWorkspace() {
                           {c.type}
                         </span>
                         <h4 className="text-sm font-bold text-[#3c2f25] mt-2">{formatDate(c.appointmentTime)} น.</h4>
-                        <p className="text-[11px] text-[#7a685c] mt-1">ที่ปรึกษา: {c.advisor?.name || 'กำลังจัดหา'}</p>
+                        <p className="text-[11px] text-[#7a685c] mt-1">
+                          ที่ปรึกษา: {c.advisor ? (c.advisor.isDeleted ? `${c.advisor.name} (พ้นสภาพ)` : c.advisor.name) : 'กำลังจัดหา'}
+                        </p>
                       </div>
                       
                       <div className="flex items-center gap-3">
@@ -886,7 +889,9 @@ export default function ResearcherWorkspace() {
                           'bg-cyan-600/10 text-cyan-500 border border-cyan-500/20'
                         }`}>{c.type}</span>
                         <h4 className="text-xs font-semibold text-slate-700 mt-2">{formatDate(c.appointmentTime)} น.</h4>
-                        <p className="text-[10px] text-[#7a685c] mt-0.5">ที่ปรึกษา: {c.advisor?.name}</p>
+                        <p className="text-[10px] text-[#7a685c] mt-0.5">
+                          ที่ปรึกษา: {c.advisor ? (c.advisor.isDeleted ? `${c.advisor.name} (พ้นสภาพ)` : c.advisor.name) : 'ไม่ระบุ'}
+                        </p>
                       </div>
 
                       <div className="flex items-center gap-3">

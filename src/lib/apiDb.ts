@@ -80,6 +80,7 @@ const mapUserRoles = (u: any) => {
   return {
     ...u,
     roles: u.role ? u.role.split(',') : [],
+    isDeleted: u.isDeleted === 1 || u.isDeleted === true || u.isDeleted === '1',
   };
 };
 
@@ -87,7 +88,7 @@ const mapUserRoles = (u: any) => {
 const realDbHandlers = {
   users: {
     findMany: async () => {
-      const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "createdAt" DESC');
+      const res = await dbQuery('SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "createdAt" DESC');
       return res.rows.map((r: any) => mapUserRoles({
         ...r,
         createdAt: toIsoString(r.createdAt),
@@ -95,7 +96,7 @@ const realDbHandlers = {
       }));
     },
     findUnique: async (id: string) => {
-      const res = await dbQuery('SELECT id, name, email, role, "createdAt", "updatedAt" FROM "irUser" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const res = await dbQuery('SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
       const r = res.rows[0];
       if (!r) return null;
       return mapUserRoles({
@@ -146,6 +147,15 @@ const realDbHandlers = {
       const current = currentRes.rows[0];
       if (!current) return null;
 
+      // Check if user has active projects (status APPROVED or ONGOING and isDeleted = 0)
+      const activeProjRes = await dbQuery(
+        'SELECT id FROM "irResearchProject" WHERE "leaderId" = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL) AND (status = \'APPROVED\' OR status = \'ONGOING\') LIMIT 1',
+        [id]
+      );
+      if (activeProjRes.rows.length > 0) {
+        throw new Error('ไม่สามารถลบนักวิจัยรายนี้ได้ เนื่องจากยังมีโครงการวิจัยที่กำลังดำเนินงานอยู่ กรุณาทำการโอนย้ายโครงการวิจัยให้ผู้อื่นดูแลแทนก่อนลบ');
+      }
+
       const res = await dbQuery('UPDATE "irUser" SET "isDeleted" = 1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *', [id]);
       const r = res.rows[0];
       const result = mapUserRoles({
@@ -161,7 +171,7 @@ const realDbHandlers = {
     findMany: async () => {
       const sql = `
         SELECT p.*, 
-               u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole"
+               u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole", u."isDeleted" as "leaderIsDeleted"
         FROM "irResearchProject" p
         LEFT JOIN "irUser" u ON p."leaderId" = u.id
         WHERE p."isDeleted" = 0 OR p."isDeleted" IS NULL
@@ -187,14 +197,15 @@ const realDbHandlers = {
           id: row.leaderId,
           name: row.leaderName,
           email: row.leaderEmail,
-          role: row.leaderRole
+          role: row.leaderRole,
+          isDeleted: row.leaderIsDeleted
         })
       }));
     },
     findUnique: async (id: string) => {
       const sql = `
         SELECT p.*, 
-               u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole"
+               u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole", u."isDeleted" as "leaderIsDeleted"
         FROM "irResearchProject" p
         LEFT JOIN "irUser" u ON p."leaderId" = u.id
         WHERE p.id = $1 AND (p."isDeleted" = 0 OR p."isDeleted" IS NULL)
@@ -221,7 +232,8 @@ const realDbHandlers = {
           id: row.leaderId,
           name: row.leaderName,
           email: row.leaderEmail,
-          role: row.leaderRole
+          role: row.leaderRole,
+          isDeleted: row.leaderIsDeleted
         })
       };
     },
@@ -295,7 +307,7 @@ const realDbHandlers = {
       const sql = `
         SELECT pub.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
-               u.name as "authorName", u.email as "authorEmail", u.role as "authorRole"
+               u.name as "authorName", u.email as "authorEmail", u.role as "authorRole", u."isDeleted" as "authorIsDeleted"
         FROM "irPublication" pub
         LEFT JOIN "irResearchProject" p ON pub."projectId" = p.id
         LEFT JOIN "irUser" u ON pub."authorId" = u.id
@@ -330,7 +342,8 @@ const realDbHandlers = {
           id: row.authorId,
           name: row.authorName,
           email: row.authorEmail,
-          role: row.authorRole
+          role: row.authorRole,
+          isDeleted: row.authorIsDeleted
         })
       }));
     },
@@ -338,7 +351,7 @@ const realDbHandlers = {
       const sql = `
         SELECT pub.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
-               u.name as "authorName", u.email as "authorEmail", u.role as "authorRole"
+               u.name as "authorName", u.email as "authorEmail", u.role as "authorRole", u."isDeleted" as "authorIsDeleted"
         FROM "irPublication" pub
         LEFT JOIN "irResearchProject" p ON pub."projectId" = p.id
         LEFT JOIN "irUser" u ON pub."authorId" = u.id
@@ -374,7 +387,8 @@ const realDbHandlers = {
           id: row.authorId,
           name: row.authorName,
           email: row.authorEmail,
-          role: row.authorRole
+          role: row.authorRole,
+          isDeleted: row.authorIsDeleted
         })
       };
     },
@@ -439,7 +453,7 @@ const realDbHandlers = {
       const sql = `
         SELECT pres.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
-               u.name as "presenterName", u.email as "presenterEmail", u.role as "presenterRole"
+               u.name as "presenterName", u.email as "presenterEmail", u.role as "presenterRole", u."isDeleted" as "presenterIsDeleted"
         FROM "irPresentation" pres
         LEFT JOIN "irResearchProject" p ON pres."projectId" = p.id
         LEFT JOIN "irUser" u ON pres."presenterId" = u.id
@@ -472,7 +486,8 @@ const realDbHandlers = {
           id: row.presenterId,
           name: row.presenterName,
           email: row.presenterEmail,
-          role: row.presenterRole
+          role: row.presenterRole,
+          isDeleted: row.presenterIsDeleted
         })
       }));
     },
@@ -480,7 +495,7 @@ const realDbHandlers = {
       const sql = `
         SELECT pres.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
-               u.name as "presenterName", u.email as "presenterEmail", u.role as "presenterRole"
+               u.name as "presenterName", u.email as "presenterEmail", u.role as "presenterRole", u."isDeleted" as "presenterIsDeleted"
         FROM "irPresentation" pres
         LEFT JOIN "irResearchProject" p ON pres."projectId" = p.id
         LEFT JOIN "irUser" u ON pres."presenterId" = u.id
@@ -514,7 +529,8 @@ const realDbHandlers = {
           id: row.presenterId,
           name: row.presenterName,
           email: row.presenterEmail,
-          role: row.presenterRole
+          role: row.presenterRole,
+          isDeleted: row.presenterIsDeleted
         })
       };
     },
@@ -574,8 +590,8 @@ const realDbHandlers = {
     findMany: async () => {
       const sql = `
         SELECT c.*, 
-               u1.name as "advisorName", u1.email as "advisorEmail", u1.role as "advisorRole",
-               u2.name as "requesterName", u2.email as "requesterEmail", u2.role as "requesterRole"
+               u1.name as "advisorName", u1.email as "advisorEmail", u1.role as "advisorRole", u1."isDeleted" as "advisorIsDeleted",
+               u2.name as "requesterName", u2.email as "requesterEmail", u2.role as "requesterRole", u2."isDeleted" as "requesterIsDeleted"
         FROM "irConsultation" c
         LEFT JOIN "irUser" u1 ON c."advisorId" = u1.id
         LEFT JOIN "irUser" u2 ON c."requesterId" = u2.id
@@ -596,21 +612,23 @@ const realDbHandlers = {
           id: row.advisorId,
           name: row.advisorName,
           email: row.advisorEmail,
-          role: row.advisorRole
+          role: row.advisorRole,
+          isDeleted: row.advisorIsDeleted
         }),
         requester: mapUserRoles({
           id: row.requesterId,
           name: row.requesterName,
           email: row.requesterEmail,
-          role: row.requesterRole
+          role: row.requesterRole,
+          isDeleted: row.requesterIsDeleted
         })
       }));
     },
     findUnique: async (id: string) => {
       const sql = `
         SELECT c.*, 
-               u1.name as "advisorName", u1.email as "advisorEmail", u1.role as "advisorRole",
-               u2.name as "requesterName", u2.email as "requesterEmail", u2.role as "requesterRole"
+               u1.name as "advisorName", u1.email as "advisorEmail", u1.role as "advisorRole", u1."isDeleted" as "advisorIsDeleted",
+               u2.name as "requesterName", u2.email as "requesterEmail", u2.role as "requesterRole", u2."isDeleted" as "requesterIsDeleted"
         FROM "irConsultation" c
         LEFT JOIN "irUser" u1 ON c."advisorId" = u1.id
         LEFT JOIN "irUser" u2 ON c."requesterId" = u2.id
@@ -632,13 +650,15 @@ const realDbHandlers = {
           id: row.advisorId,
           name: row.advisorName,
           email: row.advisorEmail,
-          role: row.advisorRole
+          role: row.advisorRole,
+          isDeleted: row.advisorIsDeleted
         }),
         requester: mapUserRoles({
           id: row.requesterId,
           name: row.requesterName,
           email: row.requesterEmail,
-          role: row.requesterRole
+          role: row.requesterRole,
+          isDeleted: row.requesterIsDeleted
         })
       };
     },

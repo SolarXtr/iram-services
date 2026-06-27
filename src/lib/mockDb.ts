@@ -369,6 +369,15 @@ export const mockDb = {
       const db = readDb();
       const idx = db.users.findIndex((u) => u.id === id && !u.isDeleted);
       if (idx === -1) throw new Error('User not found');
+
+      // Check if user has active projects (APPROVED or ONGOING)
+      const hasActiveProject = db.projects.some(
+        (p) => p.leaderId === id && !p.isDeleted && (p.status === 'APPROVED' || p.status === 'ONGOING')
+      );
+      if (hasActiveProject) {
+        throw new Error('ไม่สามารถลบนักวิจัยรายนี้ได้ เนื่องจากยังมีโครงการวิจัยที่กำลังดำเนินงานอยู่ กรุณาทำการโอนย้ายโครงการวิจัยให้ผู้อื่นดูแลแทนก่อนลบ');
+      }
+
       const oldVal = { ...db.users[idx] };
       
       // Perform soft delete
