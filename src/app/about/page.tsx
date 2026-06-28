@@ -200,6 +200,47 @@ export default function AboutProjectPage() {
           </div>
         </section>
 
+        {/* System Backup & Rollback Section */}
+        <section className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 shadow-md space-y-6">
+          <h2 className="text-xl font-bold text-[#3c2f25] border-b border-[#ebdccf] pb-3 flex items-center gap-2 font-serif">
+            <RefreshCw className="h-5.5 w-5.5 text-[#b45309]" />
+            <span>การสำรองข้อมูลและการกู้คืนระบบ (System Backup & Rollback Guidelines)</span>
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-[#7a685c]">
+            
+            {/* Code Backup (Git) */}
+            <div className="bg-[#f9f5ee] border border-[#ebdccf] p-5 rounded-2xl space-y-3">
+              <h3 className="font-bold text-sm text-[#3c2f25] flex items-center gap-1.5 border-b border-[#ebdccf] pb-2">
+                <Code className="h-4.5 w-4.5 text-[#d97706]" />
+                <span>การสำรองและกู้คืนตัวโค้ด (Source Code & History)</span>
+              </h3>
+              <p className="leading-relaxed">ระบบมีศูนย์กลางควบคุมเวอร์ชันผ่าน GitHub Repository โดยแนวทางการทำงานมีดังนี้:</p>
+              <ul className="list-disc pl-4 space-y-1.5">
+                <li><span className="font-bold text-[#3c2f25]">สำรองประวัติทั้งหมด (Local Mirror):</span> ใช้คำสั่ง <code>git clone --mirror</code> เพื่อดึงโค้ดทุกกิ่งและประวัติ Commit ทั้งหมดลงคอมพิวเตอร์เก็บเป็น Archive</li>
+                <li><span className="font-bold text-[#3c2f25]">กู้คืนย้อนหลังชั่วคราว (Inspect):</span> ใช้ <code>git checkout &lt;commit-hash&gt;</code> เพื่อตรวจสอบเวอร์ชันย้อนหลังโดยไม่ทำลายโค้ดปัจจุบัน</li>
+                <li><span className="font-bold text-[#3c2f25]">ย้อนกลับถาวรอย่างปลอดภัย (Safe Rollback):</span> ใช้ <code>git revert &lt;commit-hash&gt;</code> สร้างการคืนประวัติกลับโดยที่ข้อมูลประวัติเก่าไม่สูญหาย</li>
+                <li><span className="font-bold text-[#3c2f25]">ความสอดคล้องฝั่ง Local:</span> ไม่จำเป็นต้องสำรองข้อมูลเป็น ZIP แบบแมนนวล เนื่องจาก Git ติดตามประวัติทั้งหมด สามารถใช้ <code>git reset --hard origin/main</code> เพื่อซิงก์กลับล่าสุดได้ทันที</li>
+              </ul>
+            </div>
+
+            {/* Database Backup (D1) */}
+            <div className="bg-[#f9f5ee] border border-[#ebdccf] p-5 rounded-2xl space-y-3">
+              <h3 className="font-bold text-sm text-[#3c2f25] flex items-center gap-1.5 border-b border-[#ebdccf] pb-2">
+                <Database className="h-4.5 w-4.5 text-[#d97706]" />
+                <span>การสำรองและกู้คืนฐานข้อมูล (D1 Database & Time Travel)</span>
+              </h3>
+              <p className="leading-relaxed">เนื่องจากตัวโค้ดไม่ครอบคลุมข้อมูลในตารางผลงานจริง การสำรองฐานข้อมูล Cloudflare D1 มีแนวทางดังนี้:</p>
+              <ul className="list-disc pl-4 space-y-1.5">
+                <li><span className="font-bold text-[#3c2f25]">สำรองข้อมูลเป็นไฟล์ SQL (Export):</span> รันคำสั่ง <code>npx wrangler d1 export iram-db --output ./backup.sql</code> เพื่อเซฟไฟล์ประวัติของระบบลงเครื่อง</li>
+                <li><span className="font-bold text-[#3c2f25]">ระบบ Time Travel (กู้คืนย้อนหลังรายนาที):</span> D1 รองรับการย้อนฐานข้อมูลออนไลน์กลับไปยังจุดเวลาใดก็ได้ในอดีตสูงสุด 30 วัน ผ่านคำสั่ง <code>wrangler d1 time-travel restore</code></li>
+                <li><span className="font-bold text-[#3c2f25]">ความปลอดภัย:</span> ข้อมูลวิจัยและการตั้งค่าระบบจะได้รับการปกป้องเป็นรายนาที ทำให้ลดผลกระทบสูงสุดหากฐานข้อมูลเสียหาย</li>
+              </ul>
+            </div>
+
+          </div>
+        </section>
+
         {/* Problem Solving & Optimization Section */}
         <section className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 shadow-md space-y-6">
           <h2 className="text-xl font-bold text-[#3c2f25] border-b border-[#ebdccf] pb-3 flex items-center gap-2 font-serif">
