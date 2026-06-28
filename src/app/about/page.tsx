@@ -315,6 +315,19 @@ export default function AboutProjectPage() {
               </div>
             </div>
 
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">การจัดการนำเข้าข้อมูลและขจัดบั๊กคอลัมน์ข้อมูลนัดหมาย CEU (Bulk Excel Import & Date Parsing Bug)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> การเขียนสคริปต์สกัดคอลัมน์นัดหมายที่มีรูปแบบโครงสร้างตัวอักษรควบกัน (เช่น "ครั้งที่ 4\n14 กค. 68") เกิดข้อผิดพลาดรวบเลขที่ครั้งนัดหมายมารวมกับวันที่ ทำให้เกิดตัวเลขวันที่ข้ามจริง เช่น 414 ซึ่งส่งผลให้แปลงวันที่ผิดพลาด (Invalid Date) และข้อมูลไม่แสดงผลใน UI
+                  <br /><strong>ทางแก้:</strong> ปรับปรุงโปรแกรมแยกวิเคราะห์ข้อมูลโดยการ Split เค้าโครงการด้วยตัวขึ้นบรรทัดใหม่ `\n` เพื่อกรองเอาเฉพาะบรรทัดระบุวัน/เดือน/ปี เท่านั้น แล้วส่งชุดคำสั่ง SQL บรรจุ Insert Or Ignore ลงระบบ Cloudflare D1 ออนไลน์ขององค์กรรวม 370 แถวข้อมูล
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
  
@@ -334,7 +347,7 @@ export default function AboutProjectPage() {
               <li>ระบบ **Soft Delete & Audit Log** ทำงานสมบูรณ์แบบ ช่วยปกป้องการสูญหายของข้อมูลสำคัญ</li>
               <li>ระบบ **Permission-Based & Multi-Role** ทำงานสมบูรณ์แบบ ทั้งการระบุบทบาทควบใน D1 และการเพิ่มปุ่มสลับมุมมองโหมดทำงาน (Context Switcher) เสริม UX</li>
               <li>ระบบ **Safe Deletion & Former Researcher Label** ป้องกันข้อมูลและ KPI เสียหาย โดยติดวงเล็บเครื่องหมาย *(พ้นสภาพ)* เมื่อสมาชิกถูกลบสำเร็จ</li>
-              <li>มีการเตรียมความพร้อมสำหรับการทำระบบนำเข้าข้อมูลปริมาณมาก (Bulk Import) เพื่อรองรับรายชื่อนักวิจัย 100+ คน</li>
+              <li>**นำเข้าประวัติการเข้าร่วมคำปรึกษา CEU ปริมาณมากสำเร็จ:** นำข้อมูลจาก Excel 125 โครงการ / 148 คิวรับนัดคำปรึกษาจริงลง D1 Database และซิงก์เข้าสู่ตัวจำลองจำหน่ายเรียบร้อยแล้ว</li>
             </ul>
           </div>
 
