@@ -1394,18 +1394,6 @@ export default function ResearcherWorkspace() {
                 )}
               </div>
 
-              {editingProject && (
-                <div>
-                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">วันที่ปรึกษา CEU (วันนัด)</label>
-                  <input
-                    type="date"
-                    value={projectForm.ceuConsultDate}
-                    onChange={(e) => setProjectForm({ ...projectForm, ceuConsultDate: e.target.value })}
-                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
-                  />
-                </div>
-              )}
-
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#ebdccf]">
                 <button
                   type="button"

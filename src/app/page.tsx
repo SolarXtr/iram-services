@@ -1980,7 +1980,7 @@ export default function ResearchManagementDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 border-t border-slate-900 pt-4 mt-2">
+              <div className="grid grid-cols-2 gap-4 border-t border-[#ebdccf] pt-4 mt-2">
                 <div>
                   <label className="text-xs font-semibold text-[#7a685c] block mb-2">เลขที่ IRB (จริยธรรม)</label>
                   <input
@@ -1998,16 +1998,6 @@ export default function ResearchManagementDashboard() {
                     type="date"
                     value={projectForm.approvedDate}
                     onChange={(e) => setProjectForm({ ...projectForm, approvedDate: e.target.value })}
-                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-3 py-2.5 text-xs text-[#3c2f25] focus:border-[#d97706]"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">วันที่ปรึกษา CEU</label>
-                  <input
-                    type="date"
-                    value={projectForm.ceuConsultDate}
-                    onChange={(e) => setProjectForm({ ...projectForm, ceuConsultDate: e.target.value })}
                     className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-3 py-2.5 text-xs text-[#3c2f25] focus:border-[#d97706]"
                   />
                 </div>
