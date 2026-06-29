@@ -1446,12 +1446,32 @@ export default function ResearchManagementDashboard() {
                         {/* Extra Metadata (CEU Linkage Details) */}
                         <div className="mt-4 text-xs flex gap-6 text-[#7a685c]">
                           <div>
-                            {p.ceuConsultId ? (
-                              <span className="text-emerald-600 font-bold flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                                <span>ผ่านการตรวจสอบสถิติ CEU (ใบนัดหมาย ID: {p.ceuConsultId.slice(0, 8)}...)</span>
-                              </span>
-                            ) : p.ceuBypassReason ? (
+                            {p.ceuConsultId ? (() => {
+                              const linkedConsult = consultations.find(c => c.id === p.ceuConsultId);
+                              return (
+                                <span className="flex items-center gap-1.5 font-bold">
+                                  <span className={`w-2 h-2 rounded-full ${
+                                    !linkedConsult || linkedConsult.status === 'SCHEDULED' ? 'bg-amber-500 animate-pulse' :
+                                    linkedConsult.status === 'COMPLETED' ? 'bg-emerald-500' :
+                                    'bg-rose-500'
+                                  }`}></span>
+                                  <span className="text-[#3c2f25]">เชื่อมโยง CEU: </span>
+                                  <span className={`px-2 py-0.5 text-[9px] rounded ${
+                                    !linkedConsult ? 'bg-amber-100 text-amber-800' :
+                                    linkedConsult.status === 'SCHEDULED' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                    linkedConsult.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                    'bg-rose-100 text-rose-800 border border-rose-300'
+                                  }`}>
+                                    {!linkedConsult ? 'ไม่พบข้อมูล' :
+                                     linkedConsult.status === 'SCHEDULED' ? 'รอดำเนินการ (Scheduled)' :
+                                     linkedConsult.status === 'COMPLETED' ? 'ประเมินเสร็จสิ้น (Completed)' : 'ยกเลิก (Cancelled)'}
+                                  </span>
+                                  <span className="text-[#7a685c] font-normal text-[10px]">
+                                    {linkedConsult ? `[${linkedConsult.type}] ID: ${linkedConsult.id.slice(-6)}` : `ID: ${p.ceuConsultId}`}
+                                  </span>
+                                </span>
+                              );
+                            })() : p.ceuBypassReason ? (
                               <span className="text-[#b45309] font-bold flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 bg-[#b45309] rounded-full"></span>
                                 <span>ยกเว้นสถิติ CEU: <span className="italic font-medium">{p.ceuBypassReason}</span></span>

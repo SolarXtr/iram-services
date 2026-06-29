@@ -732,12 +732,29 @@ export default function ResearcherWorkspace() {
                       <div className="text-xs text-[#7a685c] space-y-1.5 mt-5">
                         <p>ระยะเวลา: {formatDate(p.startDate)} - {formatDate(p.endDate)}</p>
                         <p>เลขที่ IRB: {p.irbNo || 'รอดำเนินการขอจริยธรรมวิจัย'}</p>
-                        {p.ceuConsultId ? (
-                          <p className="text-emerald-600 font-bold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span>ผ่านประเมินสถิติ CEU (ID: {p.ceuConsultId.slice(0,8)}...)</span>
-                          </p>
-                        ) : p.ceuBypassReason ? (
+                         {p.ceuConsultId ? (() => {
+                          const linkedConsult = consultations.find(c => c.id === p.ceuConsultId);
+                          return (
+                            <div className="flex flex-col mt-1 text-xs">
+                              <span className="text-[10px] text-[#7a685c] block font-semibold uppercase">🔬 เชื่อมโยงประวัติ CEU</span>
+                              <span className="flex items-center gap-1.5 mt-1">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                  !linkedConsult ? 'bg-amber-100 text-amber-800' :
+                                  linkedConsult.status === 'SCHEDULED' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                  linkedConsult.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                  'bg-rose-100 text-rose-800 border border-rose-300'
+                                }`}>
+                                  {!linkedConsult ? 'ไม่พบข้อมูล' :
+                                   linkedConsult.status === 'SCHEDULED' ? 'รอดำเนินการ' :
+                                   linkedConsult.status === 'COMPLETED' ? 'ประเมินเสร็จสิ้น' : 'ยกเลิกคำปรึกษา'}
+                                </span>
+                                <span className="text-[10px] text-[#3c2f25] font-semibold">
+                                  {linkedConsult ? `[${linkedConsult.type}] ID: ${linkedConsult.id.slice(-6)}` : `ID: ${p.ceuConsultId.slice(0, 8)}...`}
+                                </span>
+                              </span>
+                            </div>
+                          );
+                        })() : p.ceuBypassReason ? (
                           <p className="text-[#b45309] font-bold flex flex-col mt-1">
                             <span className="text-[10px] text-[#b45309] block uppercase">⚠️ CEU Exempted / ยกเว้น</span>
                             <span className="italic text-[11px] font-medium leading-snug">{p.ceuBypassReason}</span>
@@ -1329,12 +1346,14 @@ export default function ResearcherWorkspace() {
                       }}
                       className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-3 py-2 text-xs text-[#3c2f25]"
                     >
-                      <option value="">-- เลือกใบนัดหมายที่เสร็จสมบูรณ์ --</option>
+                      <option value="">-- เลือกใบนัดหมาย CEU --</option>
                       {myConsultations
-                        .filter(c => c.status === 'COMPLETED')
                         .map(c => (
                           <option key={c.id} value={c.id}>
-                            [{c.type}] วันที่ {new Date(c.appointmentTime).toLocaleDateString('th-TH')} - ผู้ปรึกษา: {c.advisor?.name || 'ไม่ระบุ'}
+                            [{c.type}] {new Date(c.appointmentTime).toLocaleDateString('th-TH')} - สถานะ: {
+                              c.status === 'SCHEDULED' ? 'รอดำเนินการ' :
+                              c.status === 'COMPLETED' ? 'เสร็จสมบูรณ์' : 'ยกเลิก'
+                            } (ผู้ปรึกษา: {c.advisor?.name || 'ไม่ระบุ'})
                           </option>
                         ))
                       }
@@ -1344,9 +1363,9 @@ export default function ResearcherWorkspace() {
                         ✨ ระบบดึงชื่อโครงการและสังกัดคณะมาจากประวัติ CEU ให้โดยอัตโนมัติแล้ว (กรุณาตรวจสอบด้านบน)
                       </p>
                     )}
-                    {myConsultations.filter(c => c.status === 'COMPLETED').length === 0 && (
+                    {myConsultations.length === 0 && (
                       <p className="text-[10px] text-rose-500 font-medium mt-1">
-                        ⚠️ คุณยังไม่มีคิวประเมินสถิติ CEU ที่เสร็จสิ้น (Completed) ในระบบ กรุณาจองคิว CEU หรือกดยกเว้นหากตรงตามเงื่อนไข
+                        ⚠️ คุณยังไม่มีคิวประเมินสถิติ CEU ในระบบ กรุณาจองคิว CEU หรือกดยกเว้นหากตรงตามเงื่อนไข
                       </p>
                     )}
                   </div>
