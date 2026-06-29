@@ -80,7 +80,7 @@ interface Consultation {
 
 export default function ResearcherWorkspace() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'projects' | 'publications' | 'consultations' | 'presentations'>('projects');
+  const [activeTab, setActiveTab] = useState<'projects' | 'publications' | 'consultations' | 'presentations' | 'profile'>('projects');
   
   // Selection of researcher to simulate workspace
   const [selectedResearcherId, setSelectedResearcherId] = useState<string>('');
@@ -141,6 +141,23 @@ export default function ResearcherWorkspace() {
     status: 'PENDING' as 'PENDING' | 'PRESENTED',
     projectId: '',
   });
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+  });
+
+  const selectedResearcher = allUsers.find(u => u.id === selectedResearcherId);
+
+  // Sync profile settings form when active researcher changes
+  useEffect(() => {
+    if (selectedResearcher) {
+      setProfileForm({
+        name: selectedResearcher.name,
+        email: selectedResearcher.email,
+      });
+    }
+  }, [selectedResearcher]);
 
   // Auto-clear success/error toast notifications after 3 seconds
   useEffect(() => {
@@ -219,8 +236,6 @@ export default function ResearcherWorkspace() {
   const pastConsultations = myConsultations.filter(c => new Date(c.appointmentTime) < new Date() || c.status !== 'SCHEDULED');
 
   const [activeRole, setActiveRole] = useState<UserRole>('RESEARCHER');
-
-  const selectedResearcher = allUsers.find(u => u.id === selectedResearcherId);
   const selectedResearcherRoles = (selectedResearcher ? (selectedResearcher.roles || (selectedResearcher.role ? selectedResearcher.role.split(',') : [])) : ['RESEARCHER']) as UserRole[];
 
   useEffect(() => {
@@ -473,6 +488,21 @@ export default function ResearcherWorkspace() {
     }
   };
 
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResearcherId) return;
+
+    await runAction(
+      'กำลังบันทึกข้อมูลส่วนตัว...',
+      () => fetch(`/api/users/${selectedResearcherId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileForm)
+      }),
+      'บันทึกการตั้งค่าโปรไฟล์ส่วนตัวเรียบร้อยแล้ว!'
+    );
+  };
+
   // Helpers
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(val);
@@ -571,7 +601,8 @@ export default function ResearcherWorkspace() {
             { id: 'projects', label: 'โครงการวิจัยของฉัน', icon: FileText },
             { id: 'publications', label: 'การตีพิมพ์และขอรางวัล', icon: BookOpen },
             { id: 'consultations', label: 'ตารางนัดหมายปรึกษา CEU', icon: Calendar },
-            { id: 'presentations', label: 'ประวัติการนำเสนอผลงาน', icon: PresIcon }
+            { id: 'presentations', label: 'ประวัติการนำเสนอผลงาน', icon: PresIcon },
+            { id: 'profile', label: 'ตั้งค่าข้อมูลส่วนตัว', icon: User }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1005,6 +1036,69 @@ export default function ResearcherWorkspace() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: PROFILE SETTINGS */}
+        {activeTab === 'profile' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mt-6">
+              <h2 className="text-lg font-bold text-[#3c2f25] font-serif">ตั้งค่าโปรไฟล์ส่วนตัว (Profile Settings)</h2>
+            </div>
+
+            <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 max-w-xl shadow-md">
+              <form onSubmit={handleProfileSubmit} className="space-y-6">
+                <div>
+                  <label className="text-xs font-bold text-[#7a685c] block mb-2 uppercase tracking-wider">บทบาทในระบบปัจจุบันของคุณ</label>
+                  <div className="flex gap-2">
+                    {selectedResearcherRoles.map((role) => (
+                      <span key={role} className="px-3.5 py-1.5 bg-[#f5e6d3] text-[#b45309] border border-[#ebdccf] rounded-xl text-xs font-bold">
+                        {ROLE_LABELS[role] || role}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-[#a09085] mt-2">
+                    *สิทธิ์ระดับบทบาท (Roles) และสถานะการพ้นสภาพข้อมูล ได้รับการป้องกันด้านความปลอดภัย โดยสามารถปรับเปลี่ยนแก้ไขได้เฉพาะเจ้าหน้าที่ Staff / Admin เท่านั้น
+                  </p>
+                </div>
+
+                <div className="border-t border-[#ebdccf]/60 pt-6 space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-[#7a685c] block mb-2 uppercase tracking-wider">ชื่อ-นามสกุลจริง</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.name}
+                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4.5 py-3 text-sm text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] focus:border-[#d97706] font-medium"
+                      placeholder="ระบุชื่อ-นามสกุล..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#7a685c] block mb-2 uppercase tracking-wider">อีเมลสำหรับติดต่อสถาบัน</label>
+                    <input
+                      type="email"
+                      required
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4.5 py-3 text-sm text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] focus:border-[#d97706] font-medium"
+                      placeholder="ระบุอีเมลหลักที่ใช้ติดต่อ..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-6 border-t border-[#ebdccf]/60">
+                  <button
+                    type="submit"
+                    className="flex items-center gap-2 bg-[#d97706] hover:bg-[#c2410c] text-[#fdfcf9] font-bold text-xs px-6 py-3 rounded-xl shadow-lg active:scale-95 transition-all cursor-pointer"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span>บันทึกการตั้งค่าโปรไฟล์</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
