@@ -14,6 +14,8 @@ import {
   RefreshCw, 
   CheckCircle, 
   XCircle,
+  LayoutDashboard,
+  ArrowUpRight,
   Building,
   Presentation as PresIcon
 } from 'lucide-react';
@@ -629,8 +631,14 @@ export default function ResearcherWorkspace() {
           <span>RESEARCH & PUBLICATION CEU MANAGEMENT WORKSPACE</span>
         </div>
         <div className="flex items-center gap-3">
-          <a href="/about" className="text-[#fdfcf9] hover:underline font-semibold mr-2">เกี่ยวกับโครงการ (Portfolio)</a>
-          <span className="opacity-90 bg-black/10 px-2.5 py-1 rounded border border-[#fdfcf9]/20">Cloudflare Pages Live Mode (D1 Binding)</span>
+          <a 
+            href="/dashboard" 
+            className="flex items-center gap-1.5 bg-black/20 hover:bg-black/35 text-white border border-[#fdfcf9]/30 px-3.5 py-1.5 rounded-xl text-[11px] font-bold transition-all active:scale-95 shadow-inner"
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            <span>กลับสู่แดชบอร์ดหลัก (Dashboard)</span>
+            <ArrowUpRight className="h-3.5 w-3.5 opacity-70" />
+          </a>
         </div>
       </div>
 
