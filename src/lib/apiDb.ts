@@ -74,6 +74,22 @@ const writeRealAuditLog = async (
   }
 };
 
+// Migrate D1 database table columns if they do not exist
+const runMigrations = async () => {
+  if (getIsMock()) return;
+  try {
+    await dbQuery('ALTER TABLE "irResearchProject" ADD COLUMN "ceuConsultId" TEXT');
+  } catch (e) {
+    // Ignore error if column already exists
+  }
+  try {
+    await dbQuery('ALTER TABLE "irResearchProject" ADD COLUMN "ceuBypassReason" TEXT');
+  } catch (e) {
+    // Ignore error if column already exists
+  }
+};
+runMigrations().catch(err => console.error('Migration error:', err));
+
 // Helper to map and decode user roles in D1 records
 const mapUserRoles = (u: any) => {
   if (!u) return u;
@@ -198,6 +214,8 @@ const realDbHandlers = {
         department: row.department,
         leaderId: row.leaderId,
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        ceuConsultId: row.ceuConsultId || null,
+        ceuBypassReason: row.ceuBypassReason || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         leader: mapUserRoles({
@@ -234,6 +252,8 @@ const realDbHandlers = {
         department: row.department,
         leaderId: row.leaderId,
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        ceuConsultId: row.ceuConsultId || null,
+        ceuBypassReason: row.ceuBypassReason || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         leader: mapUserRoles({
@@ -251,9 +271,9 @@ const realDbHandlers = {
         INSERT INTO "irResearchProject" (
           id, title, status, "budgetInitial", "budgetSpent", 
           "startDate", "endDate", "ceuConsultDate", "irbNo", 
-          "approvedDate", department, "leaderId", "isDeleted", "createdAt", "updatedAt"
+          "approvedDate", department, "leaderId", "ceuConsultId", "ceuBypassReason", "isDeleted", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
@@ -264,7 +284,9 @@ const realDbHandlers = {
         data.irbNo || null,
         data.approvedDate ? new Date(data.approvedDate).toISOString() : null,
         data.department || null,
-        data.leaderId
+        data.leaderId,
+        data.ceuConsultId || null,
+        data.ceuBypassReason || null
       ]);
       const result = await realDbHandlers.projects.findUnique(id);
       await writeRealAuditLog('irResearchProject', id, 'CREATE', null, result, performedBy);
@@ -287,15 +309,18 @@ const realDbHandlers = {
       const department = data.department !== undefined ? data.department : current.department;
       const leaderId = data.leaderId !== undefined ? data.leaderId : current.leaderId;
       const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
+      const ceuConsultId = data.ceuConsultId !== undefined ? data.ceuConsultId : current.ceuConsultId;
+      const ceuBypassReason = data.ceuBypassReason !== undefined ? data.ceuBypassReason : current.ceuBypassReason;
  
       await dbQuery(`
         UPDATE "irResearchProject" SET
           title = $1, status = $2, "budgetInitial" = $3, "budgetSpent" = $4,
           "startDate" = $5, "endDate" = $6, "ceuConsultDate" = $7, "irbNo" = $8,
-          "approvedDate" = $9, department = $10, "leaderId" = $11, "isDeleted" = $12, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $13
+          "approvedDate" = $9, department = $10, "leaderId" = $11, "isDeleted" = $12,
+          "ceuConsultId" = $13, "ceuBypassReason" = $14, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $15
       `, [
-        title, status, budgetInitial, budgetSpent, startDate, endDate, ceuConsultDate, irbNo, approvedDate, department, leaderId, isDeleted, id
+        title, status, budgetInitial, budgetSpent, startDate, endDate, ceuConsultDate, irbNo, approvedDate, department, leaderId, isDeleted, ceuConsultId || null, ceuBypassReason || null, id
       ]);
       const result = await realDbHandlers.projects.findUnique(id);
       await writeRealAuditLog('irResearchProject', id, 'UPDATE', current, result, performedBy);

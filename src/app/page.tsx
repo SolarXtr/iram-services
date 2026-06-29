@@ -50,6 +50,8 @@ interface Project {
   leaderId: string;
   leader?: User;
   isDeleted?: boolean;
+  ceuConsultId?: string | null;
+  ceuBypassReason?: string | null;
 }
 
 interface Publication {
@@ -113,6 +115,7 @@ export default function ResearchManagementDashboard() {
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [impersonateSearch, setImpersonateSearch] = useState('');
 
   // Modal States
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -728,16 +731,25 @@ export default function ResearchManagementDashboard() {
             <div className="flex items-center gap-2">
               <UserCheck className="h-4.5 w-4.5 text-[#b45309]" />
               <span className="text-xs font-semibold text-[#4c3c31]">จำลองผู้ใช้:</span>
+              <input
+                type="text"
+                placeholder="ค้นหารายชื่อ..."
+                value={impersonateSearch}
+                onChange={(e) => setImpersonateSearch(e.target.value)}
+                className="bg-[#fdfcf9] border border-[#ebdccf] text-[11px] rounded-lg px-2.5 py-1 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] w-28 font-medium"
+              />
               <select
                 value={currentUserId}
                 onChange={(e) => setCurrentUserId(e.target.value)}
-                className="bg-[#fdfcf9] text-xs font-bold text-[#3c2f25] border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                className="bg-[#fdfcf9] text-xs font-bold text-[#3c2f25] border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors max-w-[150px]"
               >
-                {users.filter(u => !u.isDeleted).map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.role})
-                  </option>
-                ))}
+                {users
+                  .filter(u => !u.isDeleted && u.name.toLowerCase().includes(impersonateSearch.toLowerCase()))
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.role})
+                    </option>
+                  ))}
               </select>
             </div>
 
@@ -1402,11 +1414,25 @@ export default function ResearchManagementDashboard() {
                           </div>
                         </div>
 
-                        {/* Extra Metadata (CEUConsultDate) */}
+                        {/* Extra Metadata (CEU Linkage Details) */}
                         <div className="mt-4 text-xs flex gap-6 text-[#7a685c]">
                           <div>
-                            <span className="text-[#8a786c]">วันที่ปรึกษา CEU:</span>{' '}
-                            <span className="text-[#b45309] font-semibold">{formatDate(p.ceuConsultDate)}</span>
+                            {p.ceuConsultId ? (
+                              <span className="text-emerald-600 font-bold flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                <span>ผ่านการตรวจสอบสถิติ CEU (ใบนัดหมาย ID: {p.ceuConsultId.slice(0, 8)}...)</span>
+                              </span>
+                            ) : p.ceuBypassReason ? (
+                              <span className="text-[#b45309] font-bold flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-[#b45309] rounded-full"></span>
+                                <span>ยกเว้นสถิติ CEU: <span className="italic font-medium">{p.ceuBypassReason}</span></span>
+                              </span>
+                            ) : (
+                              <span className="text-rose-500 font-bold flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
+                                <span>ยังไม่ได้ผ่านตรวจสอบสถิติ CEU หรือขอยกเว้น</span>
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -13,7 +13,10 @@ import {
   RefreshCw,
   Layers,
   ArrowUpRight,
-  TrendingDown
+  TrendingDown,
+  CheckSquare,
+  BarChart3,
+  Clock
 } from 'lucide-react';
 
 interface Project {
@@ -50,6 +53,9 @@ interface Consultation {
   id: string;
   type: 'PROTOCOL' | 'STATISTICAL';
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  appointmentTime: string;
+  requester?: { name: string; isDeleted?: boolean };
+  advisor?: { name: string; isDeleted?: boolean };
 }
 
 export default function ExecutiveDashboard() {
@@ -59,6 +65,7 @@ export default function ExecutiveDashboard() {
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeDashboardTab, setActiveDashboardTab] = useState<'funding' | 'ceu'>('funding');
 
   useEffect(() => {
     setMounted(true);
@@ -206,8 +213,36 @@ export default function ExecutiveDashboard() {
           </div>
         </header>
 
-        {/* 1. Summary Cards Panel */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-[#ebdccf] gap-2 mb-6">
+          <button
+            onClick={() => setActiveDashboardTab('funding')}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+              activeDashboardTab === 'funding'
+                ? 'border-[#d97706] text-[#3c2f25]'
+                : 'border-transparent text-[#7a685c] hover:text-[#3c2f25]'
+            }`}
+          >
+            <Award className="h-4.5 w-4.5" />
+            <span>📊 ภาพรวมทุนวิจัยและผลงาน (Research Funding & Publications)</span>
+          </button>
+          <button
+            onClick={() => setActiveDashboardTab('ceu')}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+              activeDashboardTab === 'ceu'
+                ? 'border-[#d97706] text-[#3c2f25]'
+                : 'border-transparent text-[#7a685c] hover:text-[#3c2f25]'
+            }`}
+          >
+            <Calendar className="h-4.5 w-4.5" />
+            <span>🩺 งานบริการประเมินสถิติ CEU (CEU Clinical Consultations)</span>
+          </button>
+        </div>
+
+        {activeDashboardTab === 'funding' && (
+          <div className="space-y-8 animate-fadeIn">
+            {/* 1. Summary Cards Panel */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           
           <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl relative overflow-hidden group hover:border-[#b45309] transition-all">
             <div className="absolute top-0 left-0 w-2 h-full bg-[#d97706]"></div>
@@ -476,6 +511,134 @@ export default function ExecutiveDashboard() {
           </div>
 
         </section>
+        </div>
+        )}
+
+        {/* TAB: CEU CONSULTATIONS */}
+        {activeDashboardTab === 'ceu' && (
+          <div className="space-y-8 animate-fadeIn">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-[#d97706]"></div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-xs text-[#7a685c] font-semibold block uppercase tracking-wider">เคสบริการจองคิว CEU ทั้งหมด</span>
+                    <span className="text-3xl font-extrabold text-[#3c2f25] mt-3 block">{consultations.length} นัดหมาย</span>
+                  </div>
+                  <div className="bg-[#f5e6d3] text-[#b45309] p-3 rounded-xl border border-[#ebdccf]">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-emerald-600"></div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-xs text-[#7a685c] font-semibold block uppercase tracking-wider">ประเมินเสร็จสมบูรณ์แล้ว</span>
+                    <span className="text-3xl font-extrabold text-emerald-600 mt-3 block">{consultations.filter(c => c.status === 'COMPLETED').length} เคส</span>
+                  </div>
+                  <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl border border-emerald-100">
+                    <CheckSquare className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-amber-500"></div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-xs text-[#7a685c] font-semibold block uppercase tracking-wider">อยู่ระหว่างนัดหมาย/รอประเมิน</span>
+                    <span className="text-3xl font-extrabold text-amber-600 mt-3 block">{consultations.filter(c => c.status === 'SCHEDULED').length} เคส</span>
+                  </div>
+                  <div className="bg-amber-50 text-amber-600 p-3 rounded-xl border border-amber-100">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CEU Charts and Lists Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Type breakdown */}
+              <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl">
+                <h3 className="text-base font-bold text-[#3c2f25] mb-2 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-[#b45309]" />
+                  <span>ประเภทเคสที่ส่งปรึกษา CEU</span>
+                </h3>
+                <p className="text-xs text-[#7a685c] mb-6">สัดส่วนหัวข้อบริการขอคิววิเคราะห์สถิติและการประเมินโครงการวิจัย</p>
+
+                <div className="space-y-6 pt-4">
+                  {[
+                    { type: 'PROTOCOL', label: 'ประเมินระเบียบวิธีวิจัย (Protocol Review)', color: 'bg-amber-600', count: consultations.filter(c => c.type === 'PROTOCOL').length },
+                    { type: 'STATISTICAL', label: 'วิเคราะห์ผลสถิติวิจัย (Statistical Consultation)', color: 'bg-cyan-600', count: consultations.filter(c => c.type === 'STATISTICAL').length }
+                  ].map(item => {
+                    const total = consultations.length || 1;
+                    const percent = (item.count / total) * 100;
+                    return (
+                      <div key={item.type} className="space-y-2">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-[#3c2f25]">{item.label}</span>
+                          <span className="text-[#7a685c]">{item.count} เคส ({percent.toFixed(0)}%)</span>
+                        </div>
+                        <div className="w-full h-3.5 bg-[#f5e6d3] rounded-md overflow-hidden border border-[#ebdccf]">
+                          <div className={`h-full rounded-md ${item.color}`} style={{ width: `${percent}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Consultation timeline list */}
+              <div className="bg-[#fdfcf9] border border-[#ebdccf] p-6 rounded-2xl lg:col-span-2">
+                <h3 className="text-base font-bold text-[#3c2f25] mb-6 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#b45309]" />
+                  <span>ตารางและประวัติการให้คำปรึกษา CEU ทั้งหมด</span>
+                </h3>
+
+                <div className="space-y-3.5 max-h-[400px] overflow-y-auto pr-2">
+                  {consultations.length === 0 ? (
+                    <p className="text-xs text-[#7a685c] text-center py-12">ไม่มีข้อมูลคิวนัดหมาย CEU ในระบบ</p>
+                  ) : (
+                    consultations.map(c => (
+                      <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-[#fdfcf9] border border-[#ebdccf] rounded-xl hover:border-[#b45309] transition-all gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              c.type === 'PROTOCOL' ? 'bg-amber-100 text-amber-800' : 'bg-cyan-100 text-cyan-800'
+                            }`}>
+                              {c.type}
+                            </span>
+                            <span className="text-[10px] text-[#7a685c] font-semibold">
+                              {new Date(c.appointmentTime).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className="text-xs font-semibold text-[#3c2f25]">
+                            นักวิจัยผู้ขอคำปรึกษา: <span className="text-[#b45309]">{c.requester?.name || 'ไม่ทราบชื่อ'}</span>
+                          </div>
+                          <div className="text-[11px] text-[#7a685c]">
+                            อาจารย์แพทย์/ผู้เชี่ยวชาญสถิติ CEU: <span className="font-medium">{c.advisor?.name || 'ไม่ระบุ'}</span>
+                          </div>
+                        </div>
+
+                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full text-center self-start sm:self-center shrink-0 ${
+                          c.status === 'SCHEDULED' ? 'bg-amber-100 text-amber-800' :
+                          c.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                          'bg-rose-100 text-rose-800'
+                        }`}>
+                          {c.status === 'SCHEDULED' ? 'รอดำเนินการ' :
+                           c.status === 'COMPLETED' ? 'เสร็จสมบูรณ์' : 'ยกเลิกนัดหมาย'}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

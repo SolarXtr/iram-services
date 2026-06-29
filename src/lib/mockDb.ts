@@ -23,6 +23,8 @@ export interface MockProject {
   approvedDate?: string | null;
   department?: string | null;
   leaderId: string;
+  ceuConsultId?: string | null;
+  ceuBypassReason?: string | null;
   isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;

@@ -42,6 +42,8 @@ interface Project {
   approvedDate?: string | null;
   department?: string | null;
   leaderId: string;
+  ceuConsultId?: string | null;
+  ceuBypassReason?: string | null;
 }
 
 interface Publication {
@@ -120,6 +122,8 @@ export default function ResearcherWorkspace() {
     irbNo: '',
     approvedDate: '',
     department: 'คณะแพทยศาสตร์',
+    ceuConsultId: '',
+    ceuBypassReason: '',
   });
   const [publicationForm, setPublicationForm] = useState({
     title: '',
@@ -146,6 +150,8 @@ export default function ResearcherWorkspace() {
     name: '',
     email: '',
   });
+
+  const [impersonateSearch, setImpersonateSearch] = useState('');
 
   const selectedResearcher = allUsers.find(u => u.id === selectedResearcherId);
 
@@ -262,6 +268,8 @@ export default function ResearcherWorkspace() {
       irbNo: p.irbNo || '',
       approvedDate: p.approvedDate ? new Date(p.approvedDate).toISOString().split('T')[0] : '',
       department: p.department || 'คณะแพทยศาสตร์',
+      ceuConsultId: p.ceuConsultId || '',
+      ceuBypassReason: p.ceuBypassReason || '',
     });
     setIsProjectModalOpen(true);
   };
@@ -356,6 +364,8 @@ export default function ResearcherWorkspace() {
       ceuConsultDate: projectForm.ceuConsultDate || null,
       approvedDate: projectForm.approvedDate || null,
       irbNo: projectForm.irbNo || null,
+      ceuConsultId: projectForm.ceuConsultId || null,
+      ceuBypassReason: projectForm.ceuBypassReason || null,
     };
 
     const success = await runAction(
@@ -382,6 +392,8 @@ export default function ResearcherWorkspace() {
         irbNo: '',
         approvedDate: '',
         department: 'คณะแพทยศาสตร์',
+        ceuConsultId: '',
+        ceuBypassReason: '',
       });
     }
   };
@@ -554,6 +566,13 @@ export default function ResearcherWorkspace() {
           <div className="flex flex-wrap items-center gap-4 bg-[#f9f5ee] border border-[#ebdccf] px-4.5 py-3 rounded-2xl shadow-sm self-start md:self-auto">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-[#7a685c] whitespace-nowrap">จำลองเข้าสู่ระบบเป็น:</span>
+              <input
+                type="text"
+                placeholder="ค้นหารายชื่อ..."
+                value={impersonateSearch}
+                onChange={(e) => setImpersonateSearch(e.target.value)}
+                className="bg-[#fdfcf9] border border-[#ebdccf] text-[11px] rounded-lg px-2.5 py-1 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] w-28 font-semibold"
+              />
               <div className="relative">
                 <select
                   value={selectedResearcherId}
@@ -564,10 +583,10 @@ export default function ResearcherWorkspace() {
                     setEditingConsultation(null);
                     setEditingPresentation(null);
                   }}
-                  className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl pl-3 pr-8 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] appearance-none cursor-pointer"
+                  className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl pl-3 pr-8 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] cursor-pointer max-w-[150px]"
                 >
                   {allUsers
-                    .filter(u => u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF'))
+                    .filter(u => (u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF')) && u.name.toLowerCase().includes(impersonateSearch.toLowerCase()))
                     .map(u => (
                       <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                     ))
@@ -640,6 +659,8 @@ export default function ResearcherWorkspace() {
                     irbNo: '',
                     approvedDate: '',
                     department: 'คณะแพทยศาสตร์',
+                    ceuConsultId: '',
+                    ceuBypassReason: '',
                   });
                   setIsProjectModalOpen(true);
                 }}
@@ -694,7 +715,22 @@ export default function ResearcherWorkspace() {
                       <div className="text-xs text-[#7a685c] space-y-1.5 mt-5">
                         <p>ระยะเวลา: {formatDate(p.startDate)} - {formatDate(p.endDate)}</p>
                         <p>เลขที่ IRB: {p.irbNo || 'รอดำเนินการขอจริยธรรมวิจัย'}</p>
-                        {p.ceuConsultDate && <p className="text-[#b45309]">วันที่นัดหมายปรึกษา CEU: {formatDate(p.ceuConsultDate)}</p>}
+                        {p.ceuConsultId ? (
+                          <p className="text-emerald-600 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>ผ่านประเมินสถิติ CEU (ID: {p.ceuConsultId.slice(0,8)}...)</span>
+                          </p>
+                        ) : p.ceuBypassReason ? (
+                          <p className="text-[#b45309] font-bold flex flex-col mt-1">
+                            <span className="text-[10px] text-[#b45309] block uppercase">⚠️ CEU Exempted / ยกเว้น</span>
+                            <span className="italic text-[11px] font-medium leading-snug">{p.ceuBypassReason}</span>
+                          </p>
+                        ) : (
+                          <p className="text-rose-500 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            <span>⚠️ ยังไม่ได้ผ่านสถิติ CEU หรือขอยกเว้น</span>
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1221,6 +1257,88 @@ export default function ResearcherWorkspace() {
                     <option value="TERMINATED">TERMINATED</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="bg-[#f9f5ee] border border-[#ebdccf] p-4.5 rounded-2xl space-y-4">
+                <span className="text-xs font-bold text-[#b45309] block uppercase tracking-wider">🔬 การตรวจสอบสถิติ/สิทธิ์การประเมิน CEU</span>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="use_ceu"
+                      name="ceu_linkage_mode"
+                      checked={!projectForm.ceuBypassReason}
+                      onChange={() => setProjectForm({ ...projectForm, ceuBypassReason: '', ceuConsultId: '' })}
+                      className="text-[#d97706] focus:ring-[#d97706] cursor-pointer"
+                    />
+                    <label htmlFor="use_ceu" className="text-xs font-semibold text-[#3c2f25] cursor-pointer">
+                      เชื่อมโยงกับใบนัดหมายประเมิน CEU ที่เสร็จสิ้นแล้ว
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="bypass_ceu"
+                      name="ceu_linkage_mode"
+                      checked={!!projectForm.ceuBypassReason}
+                      onChange={() => setProjectForm({ ...projectForm, ceuBypassReason: 'Retrospective study / Medical record review (การวิจัยย้อนหลังสกัดจากเวชระเบียน)', ceuConsultId: '' })}
+                      className="text-[#d97706] focus:ring-[#d97706] cursor-pointer"
+                    />
+                    <label htmlFor="bypass_ceu" className="text-xs font-semibold text-[#3c2f25] cursor-pointer">
+                      ได้รับการยกเว้นไม่ต้องผ่าน CEU (Bypass CEU)
+                    </label>
+                  </div>
+                </div>
+
+                {!projectForm.ceuBypassReason ? (
+                  <div className="pt-2 border-t border-[#ebdccf]/50">
+                    <label className="text-[11px] font-semibold text-[#7a685c] block mb-1.5">เลือกใบนัดหมาย CEU ที่ผ่านการประเมินสถิติแล้ว</label>
+                    <select
+                      value={projectForm.ceuConsultId}
+                      onChange={(e) => setProjectForm({ ...projectForm, ceuConsultId: e.target.value })}
+                      className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-3 py-2 text-xs text-[#3c2f25]"
+                    >
+                      <option value="">-- เลือกใบนัดหมายที่เสร็จสมบูรณ์ --</option>
+                      {myConsultations
+                        .filter(c => c.status === 'COMPLETED')
+                        .map(c => (
+                          <option key={c.id} value={c.id}>
+                            [{c.type}] วันที่ {new Date(c.appointmentTime).toLocaleDateString('th-TH')} - ผู้ปรึกษา: {c.advisor?.name || 'ไม่ระบุ'}
+                          </option>
+                        ))
+                      }
+                    </select>
+                    {myConsultations.filter(c => c.status === 'COMPLETED').length === 0 && (
+                      <p className="text-[10px] text-rose-500 font-medium mt-1">
+                        ⚠️ คุณยังไม่มีคิวประเมินสถิติ CEU ที่เสร็จสิ้น (Completed) ในระบบ กรุณาจองคิว CEU หรือกดยกเว้นหากตรงตามเงื่อนไข
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="pt-2 border-t border-[#ebdccf]/50">
+                    <label className="text-[11px] font-semibold text-[#7a685c] block mb-1.5">ระบุเหตุผล/เงื่อนไขที่ได้รับข้อยกเว้น</label>
+                    <select
+                      value={projectForm.ceuBypassReason}
+                      onChange={(e) => setProjectForm({ ...projectForm, ceuBypassReason: e.target.value })}
+                      className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-3 py-2 text-xs text-[#3c2f25]"
+                    >
+                      <option value="Retrospective study / Medical record review (การวิจัยย้อนหลังสกัดจากเวชระเบียน)">
+                        Retrospective study / Medical record review (การวิจัยย้อนหลังสกัดจากเวชระเบียน)
+                      </option>
+                      <option value="Pure literature review / Systematic review (การทบทวนวรรณกรรม/รวบรวมข้อมูลเชิงระบบ)">
+                        Pure literature review / Systematic review (การทบทวนวรรณกรรม/รวบรวมข้อมูลเชิงระบบ)
+                      </option>
+                      <option value="External funding with pre-approved statistical review (โครงการทุนภายนอกที่ผ่านประเมินสถิติแล้ว)">
+                        External funding with pre-approved statistical review (โครงการทุนภายนอกที่ผ่านประเมินสถิติแล้ว)
+                      </option>
+                      <option value="Other special exemption / Case report (กรณีศึกษาเฉพาะราย/ข้อยกเว้นพิเศษอื่นๆ)">
+                        Other special exemption / Case report (กรณีศึกษาเฉพาะราย/ข้อยกเว้นพิเศษอื่นๆ)
+                      </option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               {editingProject && (
