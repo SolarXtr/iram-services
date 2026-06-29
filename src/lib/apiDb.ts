@@ -197,6 +197,7 @@ const realDbHandlers = {
         approvedDate: toIsoString(row.approvedDate),
         department: row.department,
         leaderId: row.leaderId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         leader: mapUserRoles({
@@ -232,6 +233,7 @@ const realDbHandlers = {
         approvedDate: toIsoString(row.approvedDate),
         department: row.department,
         leaderId: row.leaderId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         leader: mapUserRoles({
@@ -333,6 +335,7 @@ const realDbHandlers = {
         status: row.status,
         projectId: row.projectId,
         authorId: row.authorId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -345,7 +348,7 @@ const realDbHandlers = {
           endDate: toIsoString(row.projectEndDate),
           department: row.projectDepartment,
           leaderId: row.projectLeaderId,
-          isDeleted: row.projectIsDeleted === 1 || row.projectIsDeleted === true
+          isDeleted: row.projectIsDeleted === 1 || row.projectIsDeleted === true || row.projectIsDeleted === '1'
         } : null,
         author: mapUserRoles({
           id: row.authorId,
@@ -379,6 +382,7 @@ const realDbHandlers = {
         status: row.status,
         projectId: row.projectId,
         authorId: row.authorId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -390,7 +394,8 @@ const realDbHandlers = {
           startDate: toIsoString(row.projectStartDate),
           endDate: toIsoString(row.projectEndDate),
           department: row.projectDepartment,
-          leaderId: row.projectLeaderId
+          leaderId: row.projectLeaderId,
+          isDeleted: row.projectIsDeleted === 1 || row.projectIsDeleted === true || row.projectIsDeleted === '1'
         } : null,
         author: mapUserRoles({
           id: row.authorId,
@@ -480,6 +485,7 @@ const realDbHandlers = {
         status: row.status,
         projectId: row.projectId,
         presenterId: row.presenterId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -523,6 +529,7 @@ const realDbHandlers = {
         status: row.status,
         projectId: row.projectId,
         presenterId: row.presenterId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -619,6 +626,7 @@ const realDbHandlers = {
         status: row.status,
         advisorId: row.advisorId,
         requesterId: row.requesterId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         advisor: mapUserRoles({
@@ -657,6 +665,7 @@ const realDbHandlers = {
         status: row.status,
         advisorId: row.advisorId,
         requesterId: row.requesterId,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         advisor: mapUserRoles({
