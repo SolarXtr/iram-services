@@ -49,6 +49,7 @@ interface Project {
   approvedDate?: string | null;
   leaderId: string;
   leader?: User;
+  isDeleted?: boolean;
 }
 
 interface Publication {
@@ -62,6 +63,7 @@ interface Publication {
   project?: Project | null;
   authorId: string;
   author?: User;
+  isDeleted?: boolean;
 }
 
 interface Consultation {
@@ -73,6 +75,7 @@ interface Consultation {
   advisor?: User;
   requesterId: string;
   requester?: User;
+  isDeleted?: boolean;
 }
 
 export default function ResearchManagementDashboard() {
@@ -117,11 +120,34 @@ export default function ResearchManagementDashboard() {
   const [isPublicationModalOpen, setIsPublicationModalOpen] = useState(false);
   const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
 
-  // Editing States (null means creating)
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingPublication, setEditingPublication] = useState<Publication | null>(null);
   const [editingConsultation, setEditingConsultation] = useState<Consultation | null>(null);
+
+  // Active / Deleted Sub-tabs States
+  const [usersSubTab, setUsersSubTab] = useState<'active' | 'deleted'>('active');
+  const [projectsSubTab, setProjectsSubTab] = useState<'active' | 'deleted'>('active');
+  const [publicationsSubTab, setPublicationsSubTab] = useState<'active' | 'deleted'>('active');
+  const [consultationsSubTab, setConsultationsSubTab] = useState<'active' | 'deleted'>('active');
+
+  const handleRestore = async (module: string, id: string) => {
+    try {
+      const res = await fetch(`/api/${module}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDeleted: false }),
+      });
+      if (res.ok) {
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(`เกิดข้อผิดพลาดในการกู้คืนข้อมูล: ${err.error}`);
+      }
+    } catch (error: any) {
+      alert(`เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ${error.message}`);
+    }
+  };
 
   const currentUser = users.find((u) => u.id === currentUserId) || {
     id: 'user-3',
@@ -216,10 +242,10 @@ export default function ResearchManagementDashboard() {
     setLoading(true);
     try {
       const [resUsers, resProjects, resPubs, resConsults, resStatus] = await Promise.all([
-        fetch('/api/users').then((res) => res.json()),
-        fetch('/api/projects').then((res) => res.json()),
-        fetch('/api/publications').then((res) => res.json()),
-        fetch('/api/consultations').then((res) => res.json()),
+        fetch('/api/users?includeDeleted=true').then((res) => res.json()),
+        fetch('/api/projects?includeDeleted=true').then((res) => res.json()),
+        fetch('/api/publications?includeDeleted=true').then((res) => res.json()),
+        fetch('/api/consultations?includeDeleted=true').then((res) => res.json()),
         fetch('/api/db-status').then((res) => res.json()).catch((err) => ({
           status: 'error',
           isMock: true,
@@ -707,7 +733,7 @@ export default function ResearchManagementDashboard() {
                 onChange={(e) => setCurrentUserId(e.target.value)}
                 className="bg-[#fdfcf9] text-xs font-bold text-[#3c2f25] border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors"
               >
-                {users.map((u) => (
+                {users.filter(u => !u.isDeleted).map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name} ({u.role})
                   </option>
@@ -1117,6 +1143,32 @@ export default function ResearchManagementDashboard() {
           {/* Users List and CRUD UI */}
           {activeTab === 'users' && (
             <div className="space-y-6">
+              {/* Sub-tabs for Active vs Deleted */}
+              {hasPermission('MANAGE_USERS') && (
+                <div className="flex border-b border-[#ebdccf] gap-4">
+                  <button
+                    onClick={() => setUsersSubTab('active')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      usersSubTab === 'active'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    ใช้งานอยู่ ({users.filter(u => !u.isDeleted).length})
+                  </button>
+                  <button
+                    onClick={() => setUsersSubTab('deleted')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      usersSubTab === 'deleted'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    พ้นสภาพ/ถูกลบ ({users.filter(u => u.isDeleted).length})
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="relative w-80">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -1130,7 +1182,7 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#fdfcf9] border border-[#ebdccf] text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
                   />
                 </div>
-                {hasPermission('MANAGE_USERS') && (
+                {hasPermission('MANAGE_USERS') && usersSubTab === 'active' && (
                   <button
                     onClick={() => { setEditingUser(null); setUserForm({ name: '', email: '', rolesList: ['RESEARCHER'] }); setIsUserModalOpen(true); }}
                     className="flex items-center gap-2 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] font-semibold text-sm px-4.5 py-2.5 rounded-xl shadow-lg shadow-amber-600/10 active:scale-95 transition-all"
@@ -1153,12 +1205,18 @@ export default function ResearchManagementDashboard() {
                   </thead>
                   <tbody className="divide-y divide-[#ebdccf] text-sm">
                     {users
-                      .filter((u) => u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .filter((u) => {
+                        const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
+                        const matchesSubTab = usersSubTab === 'active' ? !u.isDeleted : u.isDeleted;
+                        return matchesSearch && matchesSubTab;
+                      })
                       .map((u) => {
                         const userRoles = u.roles || (u.role ? u.role.split(',') : []) as UserRole[];
                         return (
                           <tr key={u.id} className="hover:bg-[#f9f5ee]/40 transition-colors">
-                            <td className="px-6 py-4 font-semibold text-[#3c2f25]">{u.name}</td>
+                            <td className="px-6 py-4 font-semibold text-[#3c2f25]">
+                              {u.name} {u.isDeleted && <span className="text-xs text-rose-500 font-normal">(พ้นสภาพ)</span>}
+                            </td>
                             <td className="px-6 py-4 text-[#7a685c]">{u.email}</td>
                             <td className="px-6 py-4">
                               <div className="flex flex-wrap gap-1.5">
@@ -1177,18 +1235,30 @@ export default function ResearchManagementDashboard() {
                             {hasPermission('MANAGE_USERS') && (
                               <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => handleEditUser(u)}
-                                    className="p-2 text-[#7a685c] hover:text-[#3c2f25] rounded-lg hover:bg-slate-800 transition-colors"
-                                  >
-                                    <Edit className="h-4.5 w-4.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteUser(u.id)}
-                                    className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/20 transition-colors"
-                                  >
-                                    <Trash2 className="h-4.5 w-4.5" />
-                                  </button>
+                                  {usersSubTab === 'active' ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleEditUser(u)}
+                                        className="p-2 text-[#7a685c] hover:text-[#3c2f25] rounded-lg hover:bg-[#f9f5ee] transition-colors"
+                                      >
+                                        <Edit className="h-4.5 w-4.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteUser(u.id)}
+                                        className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/20 transition-colors"
+                                      >
+                                        <Trash2 className="h-4.5 w-4.5" />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleRestore('users', u.id)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg active:scale-95 transition-all cursor-pointer"
+                                    >
+                                      <RefreshCw className="h-3.5 w-3.5" />
+                                      <span>กู้คืนสิทธิ์</span>
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             )}
@@ -1204,6 +1274,32 @@ export default function ResearchManagementDashboard() {
           {/* Projects View */}
           {activeTab === 'projects' && (
             <div className="space-y-6">
+              {/* Sub-tabs for Active vs Deleted */}
+              {hasPermission('DELETE_RESEARCH') && (
+                <div className="flex border-b border-[#ebdccf] gap-4">
+                  <button
+                    onClick={() => setProjectsSubTab('active')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      projectsSubTab === 'active'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    โครงการทั้งหมด ({projects.filter(p => !p.isDeleted).length})
+                  </button>
+                  <button
+                    onClick={() => setProjectsSubTab('deleted')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      projectsSubTab === 'deleted'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    ถังขยะ/โครงการถูกลบ ({projects.filter(p => p.isDeleted).length})
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="relative w-80">
@@ -1231,7 +1327,6 @@ export default function ResearchManagementDashboard() {
                     <option value="TERMINATED">TERMINATED</option>
                   </select>
                 </div>
-                {/* Add button disabled */ null}
               </div>
 
               {/* Projects Grid */}
@@ -1240,7 +1335,8 @@ export default function ResearchManagementDashboard() {
                   .filter((p) => {
                     const matchQuery = p.title.toLowerCase().includes(searchQuery.toLowerCase());
                     const matchStatus = statusFilter === 'ALL' || p.status === statusFilter;
-                    return matchQuery && matchStatus;
+                    const matchesSubTab = projectsSubTab === 'active' ? !p.isDeleted : p.isDeleted;
+                    return matchQuery && matchStatus && matchesSubTab;
                   })
                   .map((p) => (
                     <div key={p.id} className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-lg hover:border-[#ebdccf] transition-all flex flex-col justify-between">
@@ -1256,19 +1352,30 @@ export default function ResearchManagementDashboard() {
                             }`}>
                               {p.status}
                             </span>
-                            <h3 className="text-lg font-bold text-[#3c2f25] mt-3 leading-snug">{p.title}</h3>
+                            <h3 className="text-lg font-bold text-[#3c2f25] mt-3 leading-snug">
+                              {p.title} {p.isDeleted && <span className="text-xs text-rose-500 font-normal">(ถูกลบ)</span>}
+                            </h3>
                           </div>
                           
                           {/* Project Actions */}
                           {hasPermission('DELETE_RESEARCH') && (
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {/* Edit button disabled */ null}
-                              <button
-                                onClick={() => handleDeleteProject(p.id)}
-                                className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/20 transition-colors"
-                              >
-                                <Trash2 className="h-4.5 w-4.5" />
-                              </button>
+                              {projectsSubTab === 'active' ? (
+                                <button
+                                  onClick={() => handleDeleteProject(p.id)}
+                                  className="p-2 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/20 transition-colors"
+                                >
+                                  <Trash2 className="h-4.5 w-4.5" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleRestore('projects', p.id)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg active:scale-95 transition-all cursor-pointer"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                  <span>กู้คืนโครงการ</span>
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1329,6 +1436,32 @@ export default function ResearchManagementDashboard() {
           {/* Publications Section */}
           {activeTab === 'publications' && (
             <div className="space-y-6">
+              {/* Sub-tabs for Active vs Deleted */}
+              {hasPermission('DELETE_RESEARCH') && (
+                <div className="flex border-b border-[#ebdccf] gap-4">
+                  <button
+                    onClick={() => setPublicationsSubTab('active')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      publicationsSubTab === 'active'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    งานตีพิมพ์ทั้งหมด ({publications.filter(p => !p.isDeleted).length})
+                  </button>
+                  <button
+                    onClick={() => setPublicationsSubTab('deleted')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      publicationsSubTab === 'deleted'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    ถังขยะ/งานตีพิมพ์ที่ถูกลบ ({publications.filter(p => p.isDeleted).length})
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="relative w-80">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -1342,12 +1475,15 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#fdfcf9] border border-[#ebdccf] text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
                   />
                 </div>
-                {/* Add button disabled */ null}
               </div>
 
               <div className="grid grid-cols-1 gap-6">
                 {publications
-                  .filter((p) => p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.journal.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter((p) => {
+                    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.journal.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesSubTab = publicationsSubTab === 'active' ? !p.isDeleted : p.isDeleted;
+                    return matchesSearch && matchesSubTab;
+                  })
                   .map((p) => (
                     <div key={p.id} className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-md hover:border-[#ebdccf] transition-colors">
                       <div className="flex items-start justify-between gap-4">
@@ -1359,18 +1495,29 @@ export default function ResearchManagementDashboard() {
                             <span className="text-[#b0a095]">•</span>
                             <span className="text-xs text-[#7a685c] font-semibold">{p.journal}</span>
                           </div>
-                          <h3 className="text-base font-bold text-[#3c2f25] mt-3.5 leading-snug">{p.title}</h3>
+                          <h3 className="text-base font-bold text-[#3c2f25] mt-3.5 leading-snug">
+                            {p.title} {p.isDeleted && <span className="text-xs text-rose-500 font-normal">(ถูกลบ)</span>}
+                          </h3>
                         </div>
 
                         {canEditPublication(p) && (
                           <div className="flex items-center gap-1.5">
-                            {/* Edit button disabled */ null}
-                            <button
-                              onClick={() => handleDeletePublication(p.id)}
-                              className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {publicationsSubTab === 'active' ? (
+                              <button
+                                onClick={() => handleDeletePublication(p.id)}
+                                className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleRestore('publications', p.id)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg active:scale-95 transition-all cursor-pointer"
+                              >
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                <span>กู้คืนผลงาน</span>
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1380,7 +1527,7 @@ export default function ResearchManagementDashboard() {
                         <div className="text-xs space-y-1">
                           <p className="text-[#8a786c]">ผู้ขอรับรางวัล: <span className="text-[#4c3c31] font-semibold">{p.author ? (p.author.isDeleted ? `${p.author.name} (พ้นสภาพ)` : p.author.name) : 'ไม่พบผู้ใช้ในระบบ'}</span></p>
                           {p.project && (
-                            <p className="text-[#8a786c]">โครงการวิจัยอ้างอิง: <span className="text-[#b45309] font-medium">{p.project.title}</span></p>
+                            <p className="text-[#8a786c]">โครงการวิจัยอ้างอิง: <span className="text-[#b45309] font-medium">{p.project.title} {p.project.isDeleted && <span className="text-xs text-rose-500 font-normal">(ถูกลบ)</span>}</span></p>
                           )}
                         </div>
 
@@ -1430,6 +1577,32 @@ export default function ResearchManagementDashboard() {
           {/* Consultations View */}
           {activeTab === 'consultations' && (
             <div className="space-y-6">
+              {/* Sub-tabs for Active vs Deleted */}
+              {hasPermission('DELETE_RESEARCH') && (
+                <div className="flex border-b border-[#ebdccf] gap-4">
+                  <button
+                    onClick={() => setConsultationsSubTab('active')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      consultationsSubTab === 'active'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    คิวนัดหมายทั้งหมด ({consultations.filter(c => !c.isDeleted).length})
+                  </button>
+                  <button
+                    onClick={() => setConsultationsSubTab('deleted')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      consultationsSubTab === 'deleted'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    ถังขยะ/คิวที่ถูกลบ ({consultations.filter(c => c.isDeleted).length})
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="relative w-80">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -1443,7 +1616,6 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#fdfcf9] border border-[#ebdccf] text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
                   />
                 </div>
-                {/* Add button disabled */ null}
               </div>
 
               <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl overflow-hidden shadow-lg">
@@ -1464,7 +1636,9 @@ export default function ResearchManagementDashboard() {
                         const search = searchQuery.toLowerCase();
                         const reqName = c.requester?.name?.toLowerCase() || '';
                         const advName = c.advisor?.name?.toLowerCase() || '';
-                        return reqName.includes(search) || advName.includes(search);
+                        const matchesSearch = reqName.includes(search) || advName.includes(search);
+                        const matchesSubTab = consultationsSubTab === 'active' ? !c.isDeleted : c.isDeleted;
+                        return matchesSearch && matchesSubTab;
                       })
                       .map((c) => (
                         <tr key={c.id} className="hover:bg-[#f9f5ee]/40 transition-colors">
@@ -1503,31 +1677,42 @@ export default function ResearchManagementDashboard() {
                           {(hasPermission('MANAGE_CEU_SCHEDULE') || hasPermission('CANCEL_OWN_CONSULT') || hasPermission('DELETE_RESEARCH')) && (
                             <td className="px-6 py-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {canEditConsultation(c) && c.status === 'SCHEDULED' && (
+                                {consultationsSubTab === 'active' ? (
                                   <>
-                                    <button
-                                      onClick={() => handleConsultStatusChange(c.id, 'COMPLETED')}
-                                      className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-[#f9f5ee] rounded"
-                                      title="Mark completed"
-                                    >
-                                      <CheckCircle className="h-4.5 w-4.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleConsultStatusChange(c.id, 'CANCELLED')}
-                                      className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-[#f9f5ee] rounded"
-                                      title="Mark cancelled"
-                                    >
-                                      <XCircle className="h-4.5 w-4.5" />
-                                    </button>
+                                    {canEditConsultation(c) && c.status === 'SCHEDULED' && (
+                                      <>
+                                        <button
+                                          onClick={() => handleConsultStatusChange(c.id, 'COMPLETED')}
+                                          className="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-[#f9f5ee] rounded"
+                                          title="Mark completed"
+                                        >
+                                          <CheckCircle className="h-4.5 w-4.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleConsultStatusChange(c.id, 'CANCELLED')}
+                                          className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-[#f9f5ee] rounded"
+                                          title="Mark cancelled"
+                                        >
+                                          <XCircle className="h-4.5 w-4.5" />
+                                        </button>
+                                      </>
+                                    )}
+                                    {hasPermission('DELETE_RESEARCH') && (
+                                      <button
+                                        onClick={() => handleDeleteConsultation(c.id)}
+                                        className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 rounded"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    )}
                                   </>
-                                )}
-                                {/* Edit button disabled */ null}
-                                {hasPermission('DELETE_RESEARCH') && (
+                                ) : (
                                   <button
-                                    onClick={() => handleDeleteConsultation(c.id)}
-                                    className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 rounded"
+                                    onClick={() => handleRestore('consultations', c.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg active:scale-95 transition-all cursor-pointer"
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    <span>กู้คืนคิวนัด</span>
                                   </button>
                                 )}
                               </div>
@@ -1668,7 +1853,7 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
                   >
                     <option value="" disabled>เลือกนักวิจัย...</option>
-                    {users.map((u) => (
+                    {users.filter(u => !u.isDeleted).map((u) => (
                       <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                     ))}
                   </select>
@@ -1828,7 +2013,7 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
                   >
                     <option value="">ไม่ผูกกับโครงการ (อิสระ)</option>
-                    {projects.map((p) => (
+                    {projects.filter(p => !p.isDeleted).map((p) => (
                       <option key={p.id} value={p.id}>{p.title.slice(0, 30)}...</option>
                     ))}
                   </select>
@@ -1843,7 +2028,7 @@ export default function ResearchManagementDashboard() {
                     className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
                   >
                     <option value="" disabled>เลือกผู้ส่งผลงาน...</option>
-                    {users.map((u) => (
+                    {users.filter(u => !u.isDeleted).map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
                   </select>
@@ -1923,7 +2108,7 @@ export default function ResearchManagementDashboard() {
                   >
                     <option value="" disabled>เลือกผู้ให้คำปรึกษา...</option>
                     {users
-                      .filter((u) => u.role === 'STAFF')
+                      .filter((u) => u.role === 'STAFF' && !u.isDeleted)
                       .map((u) => (
                         <option key={u.id} value={u.id}>{u.name}</option>
                       ))}
@@ -1940,7 +2125,7 @@ export default function ResearchManagementDashboard() {
                   >
                     <option value="" disabled>เลือกผู้รับคำปรึกษา...</option>
                     {users
-                      .filter((u) => u.role === 'RESEARCHER')
+                      .filter((u) => u.role === 'RESEARCHER' && !u.isDeleted)
                       .map((u) => (
                         <option key={u.id} value={u.id}>{u.name}</option>
                       ))}

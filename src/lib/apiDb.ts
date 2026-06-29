@@ -87,8 +87,12 @@ const mapUserRoles = (u: any) => {
 // Database handlers for D1 (Production)
 const realDbHandlers = {
   users: {
-    findMany: async () => {
-      const res = await dbQuery('SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "createdAt" DESC');
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const includeDeleted = options?.includeDeleted ?? false;
+      const sql = includeDeleted
+        ? 'SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" ORDER BY "createdAt" DESC'
+        : 'SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "createdAt" DESC';
+      const res = await dbQuery(sql);
       return res.rows.map((r: any) => mapUserRoles({
         ...r,
         createdAt: toIsoString(r.createdAt),
@@ -96,7 +100,7 @@ const realDbHandlers = {
       }));
     },
     findUnique: async (id: string) => {
-      const res = await dbQuery('SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const res = await dbQuery('SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE id = $1', [id]);
       const r = res.rows[0];
       if (!r) return null;
       return mapUserRoles({
@@ -121,17 +125,18 @@ const realDbHandlers = {
       return result;
     },
     update: async (id: string, data: any, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irUser" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irUser" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('User not found');
       
       const name = data.name !== undefined ? data.name : current.name;
       const email = data.email !== undefined ? data.email : current.email;
       const role = data.role !== undefined ? data.role : current.role;
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
 
       const res = await dbQuery(
-        'UPDATE "irUser" SET name = $1, email = $2, role = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
-        [name, email, role, id]
+        'UPDATE "irUser" SET name = $1, email = $2, role = $3, "isDeleted" = $4, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *',
+        [name, email, role, isDeleted, id]
       );
       const r = res.rows[0];
       const result = mapUserRoles({
@@ -168,13 +173,14 @@ const realDbHandlers = {
     },
   },
   projects: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const includeDeleted = options?.includeDeleted ?? false;
       const sql = `
         SELECT p.*, 
                u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole", u."isDeleted" as "leaderIsDeleted"
         FROM "irResearchProject" p
         LEFT JOIN "irUser" u ON p."leaderId" = u.id
-        WHERE p."isDeleted" = 0 OR p."isDeleted" IS NULL
+        ${includeDeleted ? '' : 'WHERE p."isDeleted" = 0 OR p."isDeleted" IS NULL'}
         ORDER BY p."createdAt" DESC
       `;
       const res = await dbQuery(sql);
@@ -208,7 +214,7 @@ const realDbHandlers = {
                u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole", u."isDeleted" as "leaderIsDeleted"
         FROM "irResearchProject" p
         LEFT JOIN "irUser" u ON p."leaderId" = u.id
-        WHERE p.id = $1 AND (p."isDeleted" = 0 OR p."isDeleted" IS NULL)
+        WHERE p.id = $1
       `;
       const res = await dbQuery(sql, [id]);
       const row = res.rows[0];
@@ -258,15 +264,15 @@ const realDbHandlers = {
         data.department || null,
         data.leaderId
       ]);
-      const result = await realDbHandlers.projects.findUnique(res.rows[0].id);
+      const result = await realDbHandlers.projects.findUnique(id);
       await writeRealAuditLog('irResearchProject', id, 'CREATE', null, result, performedBy);
       return result;
     },
     update: async (id: string, data: any, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irResearchProject" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irResearchProject" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Project not found');
-
+ 
       const title = data.title !== undefined ? data.title : current.title;
       const status = data.status !== undefined ? data.status : current.status;
       const budgetInitial = data.budgetInitial !== undefined ? data.budgetInitial : current.budgetInitial;
@@ -278,15 +284,16 @@ const realDbHandlers = {
       const approvedDate = data.approvedDate !== undefined ? (data.approvedDate ? new Date(data.approvedDate).toISOString() : null) : current.approvedDate;
       const department = data.department !== undefined ? data.department : current.department;
       const leaderId = data.leaderId !== undefined ? data.leaderId : current.leaderId;
-
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
+ 
       await dbQuery(`
         UPDATE "irResearchProject" SET
           title = $1, status = $2, "budgetInitial" = $3, "budgetSpent" = $4,
           "startDate" = $5, "endDate" = $6, "ceuConsultDate" = $7, "irbNo" = $8,
-          "approvedDate" = $9, department = $10, "leaderId" = $11, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $12
+          "approvedDate" = $9, department = $10, "leaderId" = $11, "isDeleted" = $12, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $13
       `, [
-        title, status, budgetInitial, budgetSpent, startDate, endDate, ceuConsultDate, irbNo, approvedDate, department, leaderId, id
+        title, status, budgetInitial, budgetSpent, startDate, endDate, ceuConsultDate, irbNo, approvedDate, department, leaderId, isDeleted, id
       ]);
       const result = await realDbHandlers.projects.findUnique(id);
       await writeRealAuditLog('irResearchProject', id, 'UPDATE', current, result, performedBy);
@@ -303,15 +310,16 @@ const realDbHandlers = {
     }
   },
   publications: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const includeDeleted = options?.includeDeleted ?? false;
       const sql = `
         SELECT pub.*, 
-               p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
+               p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId", p."isDeleted" as "projectIsDeleted",
                u.name as "authorName", u.email as "authorEmail", u.role as "authorRole", u."isDeleted" as "authorIsDeleted"
         FROM "irPublication" pub
         LEFT JOIN "irResearchProject" p ON pub."projectId" = p.id
         LEFT JOIN "irUser" u ON pub."authorId" = u.id
-        WHERE pub."isDeleted" = 0 OR pub."isDeleted" IS NULL
+        ${includeDeleted ? '' : 'WHERE pub."isDeleted" = 0 OR pub."isDeleted" IS NULL'}
         ORDER BY pub."createdAt" DESC
       `;
       const res = await dbQuery(sql);
@@ -336,7 +344,8 @@ const realDbHandlers = {
           startDate: toIsoString(row.projectStartDate),
           endDate: toIsoString(row.projectEndDate),
           department: row.projectDepartment,
-          leaderId: row.projectLeaderId
+          leaderId: row.projectLeaderId,
+          isDeleted: row.projectIsDeleted === 1 || row.projectIsDeleted === true
         } : null,
         author: mapUserRoles({
           id: row.authorId,
@@ -350,12 +359,12 @@ const realDbHandlers = {
     findUnique: async (id: string) => {
       const sql = `
         SELECT pub.*, 
-               p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
+               p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId", p."isDeleted" as "projectIsDeleted",
                u.name as "authorName", u.email as "authorEmail", u.role as "authorRole", u."isDeleted" as "authorIsDeleted"
         FROM "irPublication" pub
         LEFT JOIN "irResearchProject" p ON pub."projectId" = p.id
         LEFT JOIN "irUser" u ON pub."authorId" = u.id
-        WHERE pub.id = $1 AND (pub."isDeleted" = 0 OR pub."isDeleted" IS NULL)
+        WHERE pub.id = $1
       `;
       const res = await dbQuery(sql, [id]);
       const row = res.rows[0];
@@ -412,7 +421,7 @@ const realDbHandlers = {
       return result;
     },
     update: async (id: string, data: any, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irPublication" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irPublication" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Publication not found');
 
@@ -424,22 +433,23 @@ const realDbHandlers = {
       const status = data.status !== undefined ? data.status : current.status;
       const projectId = data.projectId !== undefined ? data.projectId : current.projectId;
       const authorId = data.authorId !== undefined ? data.authorId : current.authorId;
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
 
       await dbQuery(`
         UPDATE "irPublication" SET
           title = $1, journal = $2, quartile = $3, "rewardStatus" = $4,
           "rewardAmount" = $5, status = $6, "projectId" = $7, "authorId" = $8,
-          "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $9
+          "isDeleted" = $9, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $10
       `, [
-        title, journal, quartile, rewardStatus, rewardAmount, status, projectId || null, authorId, id
+        title, journal, quartile, rewardStatus, rewardAmount, status, projectId || null, authorId, isDeleted, id
       ]);
       const result = await realDbHandlers.publications.findUnique(id);
       await writeRealAuditLog('irPublication', id, 'UPDATE', current, result, performedBy);
       return result;
     },
     delete: async (id: string, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irPublication" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irPublication" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) return null;
 
@@ -449,7 +459,8 @@ const realDbHandlers = {
     }
   },
   presentations: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const includeDeleted = options?.includeDeleted ?? false;
       const sql = `
         SELECT pres.*, 
                p.title as "projectTitle", p.status as "projectStatus", p."budgetInitial" as "projectBudgetInitial", p."budgetSpent" as "projectBudgetSpent", p."startDate" as "projectStartDate", p."endDate" as "projectEndDate", p.department as "projectDepartment", p."leaderId" as "projectLeaderId",
@@ -457,7 +468,7 @@ const realDbHandlers = {
         FROM "irPresentation" pres
         LEFT JOIN "irResearchProject" p ON pres."projectId" = p.id
         LEFT JOIN "irUser" u ON pres."presenterId" = u.id
-        WHERE pres."isDeleted" = 0 OR pres."isDeleted" IS NULL
+        ${includeDeleted ? '' : 'WHERE pres."isDeleted" = 0 OR pres."isDeleted" IS NULL'}
         ORDER BY pres."createdAt" DESC
       `;
       const res = await dbQuery(sql);
@@ -499,7 +510,7 @@ const realDbHandlers = {
         FROM "irPresentation" pres
         LEFT JOIN "irResearchProject" p ON pres."projectId" = p.id
         LEFT JOIN "irUser" u ON pres."presenterId" = u.id
-        WHERE pres.id = $1 AND (pres."isDeleted" = 0 OR pres."isDeleted" IS NULL)
+        WHERE pres.id = $1
       `;
       const res = await dbQuery(sql, [id]);
       const row = res.rows[0];
@@ -553,7 +564,7 @@ const realDbHandlers = {
       return result;
     },
     update: async (id: string, data: any, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irPresentation" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irPresentation" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Presentation not found');
 
@@ -563,21 +574,22 @@ const realDbHandlers = {
       const status = data.status !== undefined ? data.status : current.status;
       const projectId = data.projectId !== undefined ? data.projectId : current.projectId;
       const presenterId = data.presenterId !== undefined ? data.presenterId : current.presenterId;
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
 
       await dbQuery(`
         UPDATE "irPresentation" SET
           title = $1, conference = $2, type = $3, status = $4,
-          "projectId" = $5, "presenterId" = $6, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $7
+          "projectId" = $5, "presenterId" = $6, "isDeleted" = $7, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $8
       `, [
-        title, conference, type, status, projectId || null, presenterId, id
+        title, conference, type, status, projectId || null, presenterId, isDeleted, id
       ]);
       const result = await realDbHandlers.presentations.findUnique(id);
       await writeRealAuditLog('irPresentation', id, 'UPDATE', current, result, performedBy);
       return result;
     },
     delete: async (id: string, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irPresentation" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irPresentation" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) return null;
 
@@ -587,7 +599,8 @@ const realDbHandlers = {
     }
   },
   consultations: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const includeDeleted = options?.includeDeleted ?? false;
       const sql = `
         SELECT c.*, 
                u1.name as "advisorName", u1.email as "advisorEmail", u1.role as "advisorRole", u1."isDeleted" as "advisorIsDeleted",
@@ -595,7 +608,7 @@ const realDbHandlers = {
         FROM "irConsultation" c
         LEFT JOIN "irUser" u1 ON c."advisorId" = u1.id
         LEFT JOIN "irUser" u2 ON c."requesterId" = u2.id
-        WHERE c."isDeleted" = 0 OR c."isDeleted" IS NULL
+        ${includeDeleted ? '' : 'WHERE c."isDeleted" = 0 OR c."isDeleted" IS NULL'}
         ORDER BY c."appointmentTime" ASC
       `;
       const res = await dbQuery(sql);
@@ -632,7 +645,7 @@ const realDbHandlers = {
         FROM "irConsultation" c
         LEFT JOIN "irUser" u1 ON c."advisorId" = u1.id
         LEFT JOIN "irUser" u2 ON c."requesterId" = u2.id
-        WHERE c.id = $1 AND (c."isDeleted" = 0 OR c."isDeleted" IS NULL)
+        WHERE c.id = $1
       `;
       const res = await dbQuery(sql, [id]);
       const row = res.rows[0];
@@ -681,7 +694,7 @@ const realDbHandlers = {
       return result;
     },
     update: async (id: string, data: any, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irConsultation" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const currentRes = await dbQuery('SELECT * FROM "irConsultation" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Consultation not found');
 
@@ -690,14 +703,15 @@ const realDbHandlers = {
       const status = data.status !== undefined ? data.status : current.status;
       const advisorId = data.advisorId !== undefined ? data.advisorId : current.advisorId;
       const requesterId = data.requesterId !== undefined ? data.requesterId : current.requesterId;
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
 
       await dbQuery(`
         UPDATE "irConsultation" SET
           type = $1, "appointmentTime" = $2, status = $3,
-          "advisorId" = $4, "requesterId" = $5, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $6
+          "advisorId" = $4, "requesterId" = $5, "isDeleted" = $6, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $7
       `, [
-        type, appointmentTime, status, advisorId, requesterId, id
+        type, appointmentTime, status, advisorId, requesterId, isDeleted, id
       ]);
       const result = await realDbHandlers.consultations.findUnique(id);
       await writeRealAuditLog('irConsultation', id, 'UPDATE', current, result, performedBy);

@@ -134,11 +134,12 @@ const mapUserRoles = (u: any): MockUser => {
 export const mockDb = {
   // Users CRUD
   users: {
-    findMany: async () => {
-      return readDb().users.filter((u) => !u.isDeleted).map(mapUserRoles);
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const includeDeleted = options?.includeDeleted ?? false;
+      return readDb().users.filter((u) => includeDeleted || !u.isDeleted).map(mapUserRoles);
     },
     findUnique: async (id: string) => {
-      const u = readDb().users.find((u) => u.id === id && !u.isDeleted);
+      const u = readDb().users.find((u) => u.id === id);
       return u ? mapUserRoles(u) : null;
     },
     create: async (data: Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
@@ -157,7 +158,7 @@ export const mockDb = {
     },
     update: async (id: string, data: Partial<Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.users.findIndex((u) => u.id === id && !u.isDeleted);
+      const idx = db.users.findIndex((u) => u.id === id);
       if (idx === -1) throw new Error('User not found');
       const oldVal = { ...db.users[idx] };
       db.users[idx] = {
@@ -196,10 +197,11 @@ export const mockDb = {
 
   // Projects CRUD
   projects: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
       const db = readDb();
+      const includeDeleted = options?.includeDeleted ?? false;
       return db.projects
-        .filter((p) => !p.isDeleted)
+        .filter((p) => includeDeleted || !p.isDeleted)
         .map((p) => ({
           ...p,
           leader: mapUserRoles(db.users.find((u) => u.id === p.leaderId)),
@@ -207,7 +209,7 @@ export const mockDb = {
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const p = db.projects.find((x) => x.id === id && !x.isDeleted);
+      const p = db.projects.find((x) => x.id === id);
       if (!p) return null;
       return {
         ...p,
@@ -233,7 +235,7 @@ export const mockDb = {
     },
     update: async (id: string, data: Partial<Omit<MockProject, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.projects.findIndex((x) => x.id === id && !x.isDeleted);
+      const idx = db.projects.findIndex((x) => x.id === id);
       if (idx === -1) throw new Error('Project not found');
       const oldVal = { ...db.projects[idx] };
       db.projects[idx] = {
@@ -266,10 +268,11 @@ export const mockDb = {
 
   // Publications CRUD
   publications: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
       const db = readDb();
+      const includeDeleted = options?.includeDeleted ?? false;
       return db.publications
-        .filter((p) => !p.isDeleted)
+        .filter((p) => includeDeleted || !p.isDeleted)
         .map((p) => ({
           ...p,
           project: db.projects.find((proj) => proj.id === p.projectId) || null,
@@ -278,7 +281,7 @@ export const mockDb = {
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const p = db.publications.find((x) => x.id === id && !x.isDeleted);
+      const p = db.publications.find((x) => x.id === id);
       if (!p) return null;
       return {
         ...p,
@@ -306,7 +309,7 @@ export const mockDb = {
     },
     update: async (id: string, data: Partial<Omit<MockPublication, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.publications.findIndex((x) => x.id === id && !x.isDeleted);
+      const idx = db.publications.findIndex((x) => x.id === id);
       if (idx === -1) throw new Error('Publication not found');
       const oldVal = { ...db.publications[idx] };
       db.publications[idx] = {
@@ -340,10 +343,11 @@ export const mockDb = {
 
   // Presentations CRUD
   presentations: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
       const db = readDb();
+      const includeDeleted = options?.includeDeleted ?? false;
       return db.presentations
-        .filter((p) => !p.isDeleted)
+        .filter((p) => includeDeleted || !p.isDeleted)
         .map((p) => ({
           ...p,
           project: db.projects.find((proj) => proj.id === p.projectId) || null,
@@ -352,7 +356,7 @@ export const mockDb = {
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const p = db.presentations.find((x) => x.id === id && !x.isDeleted);
+      const p = db.presentations.find((x) => x.id === id);
       if (!p) return null;
       return {
         ...p,
@@ -380,7 +384,7 @@ export const mockDb = {
     },
     update: async (id: string, data: Partial<Omit<MockPresentation, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.presentations.findIndex((x) => x.id === id && !x.isDeleted);
+      const idx = db.presentations.findIndex((x) => x.id === id);
       if (idx === -1) throw new Error('Presentation not found');
       const oldVal = { ...db.presentations[idx] };
       db.presentations[idx] = {
@@ -414,10 +418,11 @@ export const mockDb = {
 
   // Consultations CRUD
   consultations: {
-    findMany: async () => {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
       const db = readDb();
+      const includeDeleted = options?.includeDeleted ?? false;
       return db.consultations
-        .filter((c) => !c.isDeleted)
+        .filter((c) => includeDeleted || !c.isDeleted)
         .map((c) => ({
           ...c,
           advisor: mapUserRoles(db.users.find((u) => u.id === c.advisorId)),
@@ -426,7 +431,7 @@ export const mockDb = {
     },
     findUnique: async (id: string) => {
       const db = readDb();
-      const c = db.consultations.find((x) => x.id === id && !x.isDeleted);
+      const c = db.consultations.find((x) => x.id === id);
       if (!c) return null;
       return {
         ...c,
@@ -454,7 +459,7 @@ export const mockDb = {
     },
     update: async (id: string, data: Partial<Omit<MockConsultation, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
       const db = readDb();
-      const idx = db.consultations.findIndex((x) => x.id === id && !x.isDeleted);
+      const idx = db.consultations.findIndex((x) => x.id === id);
       if (idx === -1) throw new Error('Consultation not found');
       const oldVal = { ...db.consultations[idx] };
       db.consultations[idx] = {

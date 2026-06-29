@@ -3,9 +3,11 @@ import { apiDb } from '@/lib/apiDb';
 
 export const runtime = 'edge';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const presentations = await apiDb.presentations.findMany();
+    const { searchParams } = new URL(request.url);
+    const includeDeleted = searchParams.get('includeDeleted') === 'true';
+    const presentations = await apiDb.presentations.findMany({ includeDeleted });
     return NextResponse.json(presentations);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
