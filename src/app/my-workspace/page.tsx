@@ -1314,7 +1314,19 @@ export default function ResearcherWorkspace() {
                     <label className="text-[11px] font-semibold text-[#7a685c] block mb-1.5">เลือกใบนัดหมาย CEU ที่ผ่านการประเมินสถิติแล้ว</label>
                     <select
                       value={projectForm.ceuConsultId}
-                      onChange={(e) => setProjectForm({ ...projectForm, ceuConsultId: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        let updatedForm = { ...projectForm, ceuConsultId: val };
+                        if (val) {
+                          const ceuProjId = val.replace('consult-', '').split('-').slice(0, 2).join('-');
+                          const ceuProj = projects.find(p => p.id === ceuProjId);
+                          if (ceuProj) {
+                            updatedForm.title = ceuProj.title;
+                            updatedForm.department = ceuProj.department || 'คณะแพทยศาสตร์';
+                          }
+                        }
+                        setProjectForm(updatedForm);
+                      }}
                       className="w-full bg-[#fdfcf9] border border-[#ebdccf] rounded-xl px-3 py-2 text-xs text-[#3c2f25]"
                     >
                       <option value="">-- เลือกใบนัดหมายที่เสร็จสมบูรณ์ --</option>
@@ -1327,6 +1339,11 @@ export default function ResearcherWorkspace() {
                         ))
                       }
                     </select>
+                    {projectForm.ceuConsultId && (
+                      <p className="text-[10px] text-emerald-600 font-semibold mt-1">
+                        ✨ ระบบดึงชื่อโครงการและสังกัดคณะมาจากประวัติ CEU ให้โดยอัตโนมัติแล้ว (กรุณาตรวจสอบด้านบน)
+                      </p>
+                    )}
                     {myConsultations.filter(c => c.status === 'COMPLETED').length === 0 && (
                       <p className="text-[10px] text-rose-500 font-medium mt-1">
                         ⚠️ คุณยังไม่มีคิวประเมินสถิติ CEU ที่เสร็จสิ้น (Completed) ในระบบ กรุณาจองคิว CEU หรือกดยกเว้นหากตรงตามเงื่อนไข
