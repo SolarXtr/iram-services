@@ -130,7 +130,7 @@ export default function ResearchManagementDashboard() {
 
   // Active / Deleted Sub-tabs States
   const [usersSubTab, setUsersSubTab] = useState<'active' | 'deleted'>('active');
-  const [projectsSubTab, setProjectsSubTab] = useState<'active' | 'deleted'>('active');
+  const [projectsSubTab, setProjectsSubTab] = useState<'active' | 'ceu' | 'deleted'>('active');
   const [publicationsSubTab, setPublicationsSubTab] = useState<'active' | 'deleted'>('active');
   const [consultationsSubTab, setConsultationsSubTab] = useState<'active' | 'deleted'>('active');
 
@@ -1297,7 +1297,17 @@ export default function ResearchManagementDashboard() {
                         : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
                     }`}
                   >
-                    โครงการทั้งหมด ({projects.filter(p => !p.isDeleted).length})
+                    โครงการขอรับทุน ({projects.filter(p => !p.isDeleted && !p.id.startsWith('CEU-')).length})
+                  </button>
+                  <button
+                    onClick={() => setProjectsSubTab('ceu')}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all ${
+                      projectsSubTab === 'ceu'
+                        ? 'border-[#d97706] text-[#d97706]'
+                        : 'border-transparent text-[#7a685c] hover:text-[#4c3c31]'
+                    }`}
+                  >
+                    โครงการในระบบ CEU ({projects.filter(p => !p.isDeleted && p.id.startsWith('CEU-')).length})
                   </button>
                   <button
                     onClick={() => setProjectsSubTab('deleted')}
@@ -1347,7 +1357,10 @@ export default function ResearchManagementDashboard() {
                   .filter((p) => {
                     const matchQuery = p.title.toLowerCase().includes(searchQuery.toLowerCase());
                     const matchStatus = statusFilter === 'ALL' || p.status === statusFilter;
-                    const matchesSubTab = projectsSubTab === 'active' ? !p.isDeleted : p.isDeleted;
+                    const matchesSubTab = 
+                      projectsSubTab === 'active' ? (!p.isDeleted && !p.id.startsWith('CEU-')) :
+                      projectsSubTab === 'ceu' ? (!p.isDeleted && p.id.startsWith('CEU-')) :
+                      p.isDeleted;
                     return matchQuery && matchStatus && matchesSubTab;
                   })
                   .map((p) => (

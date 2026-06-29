@@ -232,7 +232,7 @@ export default function ResearcherWorkspace() {
   };
 
   // Filters by selected researcher
-  const myProjects = projects.filter(p => p.leaderId === selectedResearcherId);
+  const myProjects = projects.filter(p => p.leaderId === selectedResearcherId && !p.id.startsWith('CEU-'));
   const myPublications = publications.filter(p => p.authorId === selectedResearcherId);
   const myPresentations = presentations.filter(p => p.presenterId === selectedResearcherId);
   
