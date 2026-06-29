@@ -75,8 +75,9 @@ const writeRealAuditLog = async (
 };
 
 // Migrate D1 database table columns if they do not exist
-const runMigrations = async () => {
-  if (getIsMock()) return;
+let migrated = false;
+export const ensureMigrations = async () => {
+  if (migrated || getIsMock()) return;
   try {
     await dbQuery('ALTER TABLE "irResearchProject" ADD COLUMN "ceuConsultId" TEXT');
   } catch (e) {
@@ -87,8 +88,8 @@ const runMigrations = async () => {
   } catch (e) {
     // Ignore error if column already exists
   }
+  migrated = true;
 };
-runMigrations().catch(err => console.error('Migration error:', err));
 
 // Helper to map and decode user roles in D1 records
 const mapUserRoles = (u: any) => {
@@ -190,6 +191,7 @@ const realDbHandlers = {
   },
   projects: {
     findMany: async (options?: { includeDeleted?: boolean }) => {
+      await ensureMigrations();
       const includeDeleted = options?.includeDeleted ?? false;
       const sql = `
         SELECT p.*, 
@@ -228,6 +230,7 @@ const realDbHandlers = {
       }));
     },
     findUnique: async (id: string) => {
+      await ensureMigrations();
       const sql = `
         SELECT p.*, 
                u.name as "leaderName", u.email as "leaderEmail", u.role as "leaderRole", u."isDeleted" as "leaderIsDeleted"
@@ -266,6 +269,7 @@ const realDbHandlers = {
       };
     },
     create: async (data: any, performedBy?: string | null) => {
+      await ensureMigrations();
       const id = data.id || crypto.randomUUID();
       const sql = `
         INSERT INTO "irResearchProject" (
@@ -293,6 +297,7 @@ const realDbHandlers = {
       return result;
     },
     update: async (id: string, data: any, performedBy?: string | null) => {
+      await ensureMigrations();
       const currentRes = await dbQuery('SELECT * FROM "irResearchProject" WHERE id = $1', [id]);
       const current = currentRes.rows[0];
       if (!current) throw new Error('Project not found');
