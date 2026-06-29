@@ -88,6 +88,24 @@ export const ensureMigrations = async () => {
   } catch (e) {
     // Ignore error if column already exists
   }
+  try {
+    await dbQuery('ALTER TABLE "irResearchProject" ADD COLUMN "attachmentName" TEXT');
+  } catch (e) {}
+  try {
+    await dbQuery('ALTER TABLE "irResearchProject" ADD COLUMN "attachmentData" TEXT');
+  } catch (e) {}
+  try {
+    await dbQuery('ALTER TABLE "irPublication" ADD COLUMN "attachmentName" TEXT');
+  } catch (e) {}
+  try {
+    await dbQuery('ALTER TABLE "irPublication" ADD COLUMN "attachmentData" TEXT');
+  } catch (e) {}
+  try {
+    await dbQuery('ALTER TABLE "irPresentation" ADD COLUMN "attachmentName" TEXT');
+  } catch (e) {}
+  try {
+    await dbQuery('ALTER TABLE "irPresentation" ADD COLUMN "attachmentData" TEXT');
+  } catch (e) {}
   migrated = true;
 };
 
@@ -218,6 +236,8 @@ const realDbHandlers = {
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         ceuConsultId: row.ceuConsultId || null,
         ceuBypassReason: row.ceuBypassReason || null,
+        attachmentName: row.attachmentName || null,
+        attachmentData: row.attachmentData || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         leader: mapUserRoles({
@@ -257,6 +277,8 @@ const realDbHandlers = {
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
         ceuConsultId: row.ceuConsultId || null,
         ceuBypassReason: row.ceuBypassReason || null,
+        attachmentName: row.attachmentName || null,
+        attachmentData: row.attachmentData || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         leader: mapUserRoles({
@@ -275,9 +297,9 @@ const realDbHandlers = {
         INSERT INTO "irResearchProject" (
           id, title, status, "budgetInitial", "budgetSpent", 
           "startDate", "endDate", "ceuConsultDate", "irbNo", 
-          "approvedDate", department, "leaderId", "ceuConsultId", "ceuBypassReason", "isDeleted", "createdAt", "updatedAt"
+          "approvedDate", department, "leaderId", "ceuConsultId", "ceuBypassReason", "attachmentName", "attachmentData", "isDeleted", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
@@ -290,7 +312,9 @@ const realDbHandlers = {
         data.department || null,
         data.leaderId,
         data.ceuConsultId || null,
-        data.ceuBypassReason || null
+        data.ceuBypassReason || null,
+        data.attachmentName || null,
+        data.attachmentData || null
       ]);
       const result = await realDbHandlers.projects.findUnique(id);
       await writeRealAuditLog('irResearchProject', id, 'CREATE', null, result, performedBy);
@@ -316,16 +340,18 @@ const realDbHandlers = {
       const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
       const ceuConsultId = data.ceuConsultId !== undefined ? data.ceuConsultId : current.ceuConsultId;
       const ceuBypassReason = data.ceuBypassReason !== undefined ? data.ceuBypassReason : current.ceuBypassReason;
+      const attachmentName = data.attachmentName !== undefined ? data.attachmentName : current.attachmentName;
+      const attachmentData = data.attachmentData !== undefined ? data.attachmentData : current.attachmentData;
  
       await dbQuery(`
         UPDATE "irResearchProject" SET
           title = $1, status = $2, "budgetInitial" = $3, "budgetSpent" = $4,
           "startDate" = $5, "endDate" = $6, "ceuConsultDate" = $7, "irbNo" = $8,
           "approvedDate" = $9, department = $10, "leaderId" = $11, "isDeleted" = $12,
-          "ceuConsultId" = $13, "ceuBypassReason" = $14, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $15
+          "ceuConsultId" = $13, "ceuBypassReason" = $14, "attachmentName" = $15, "attachmentData" = $16, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $17
       `, [
-        title, status, budgetInitial, budgetSpent, startDate, endDate, ceuConsultDate, irbNo, approvedDate, department, leaderId, isDeleted, ceuConsultId || null, ceuBypassReason || null, id
+        title, status, budgetInitial, budgetSpent, startDate, endDate, ceuConsultDate, irbNo, approvedDate, department, leaderId, isDeleted, ceuConsultId || null, ceuBypassReason || null, attachmentName || null, attachmentData || null, id
       ]);
       const result = await realDbHandlers.projects.findUnique(id);
       await writeRealAuditLog('irResearchProject', id, 'UPDATE', current, result, performedBy);
@@ -366,6 +392,8 @@ const realDbHandlers = {
         projectId: row.projectId,
         authorId: row.authorId,
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        attachmentName: row.attachmentName || null,
+        attachmentData: row.attachmentData || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -413,6 +441,8 @@ const realDbHandlers = {
         projectId: row.projectId,
         authorId: row.authorId,
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        attachmentName: row.attachmentName || null,
+        attachmentData: row.attachmentData || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -441,15 +471,16 @@ const realDbHandlers = {
       const sql = `
         INSERT INTO "irPublication" (
           id, title, journal, quartile, "rewardStatus", 
-          "rewardAmount", status, "projectId", "authorId", "isDeleted",
+          "rewardAmount", status, "projectId", "authorId", "attachmentName", "attachmentData", "isDeleted",
           "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
         id, data.title, data.journal, data.quartile, data.rewardStatus || 'PENDING',
-        data.rewardAmount || 0, data.status || 'WRITING', data.projectId || null, data.authorId
+        data.rewardAmount || 0, data.status || 'WRITING', data.projectId || null, data.authorId,
+        data.attachmentName || null, data.attachmentData || null
       ]);
       const result = await realDbHandlers.publications.findUnique(res.rows[0].id);
       await writeRealAuditLog('irPublication', id, 'CREATE', null, result, performedBy);
@@ -469,15 +500,17 @@ const realDbHandlers = {
       const projectId = data.projectId !== undefined ? data.projectId : current.projectId;
       const authorId = data.authorId !== undefined ? data.authorId : current.authorId;
       const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
+      const attachmentName = data.attachmentName !== undefined ? data.attachmentName : current.attachmentName;
+      const attachmentData = data.attachmentData !== undefined ? data.attachmentData : current.attachmentData;
 
       await dbQuery(`
         UPDATE "irPublication" SET
           title = $1, journal = $2, quartile = $3, "rewardStatus" = $4,
           "rewardAmount" = $5, status = $6, "projectId" = $7, "authorId" = $8,
-          "isDeleted" = $9, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $10
+          "attachmentName" = $9, "attachmentData" = $10, "isDeleted" = $11, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $12
       `, [
-        title, journal, quartile, rewardStatus, rewardAmount, status, projectId || null, authorId, isDeleted, id
+        title, journal, quartile, rewardStatus, rewardAmount, status, projectId || null, authorId, attachmentName || null, attachmentData || null, isDeleted, id
       ]);
       const result = await realDbHandlers.publications.findUnique(id);
       await writeRealAuditLog('irPublication', id, 'UPDATE', current, result, performedBy);
@@ -516,6 +549,8 @@ const realDbHandlers = {
         projectId: row.projectId,
         presenterId: row.presenterId,
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        attachmentName: row.attachmentName || null,
+        attachmentData: row.attachmentData || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -560,6 +595,8 @@ const realDbHandlers = {
         projectId: row.projectId,
         presenterId: row.presenterId,
         isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        attachmentName: row.attachmentName || null,
+        attachmentData: row.attachmentData || null,
         createdAt: toIsoString(row.createdAt),
         updatedAt: toIsoString(row.updatedAt),
         project: row.projectId ? {
@@ -587,14 +624,15 @@ const realDbHandlers = {
       const sql = `
         INSERT INTO "irPresentation" (
           id, title, conference, type, status, "projectId", 
-          "presenterId", "isDeleted", "createdAt", "updatedAt"
+          "presenterId", "attachmentName", "attachmentData", "isDeleted", "createdAt", "updatedAt"
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
       `;
       const res = await dbQuery(sql, [
         id, data.title, data.conference, data.type, data.status || 'PENDING',
-        data.projectId || null, data.presenterId
+        data.projectId || null, data.presenterId,
+        data.attachmentName || null, data.attachmentData || null
       ]);
       const result = await realDbHandlers.presentations.findUnique(res.rows[0].id);
       await writeRealAuditLog('irPresentation', id, 'CREATE', null, result, performedBy);
@@ -612,14 +650,16 @@ const realDbHandlers = {
       const projectId = data.projectId !== undefined ? data.projectId : current.projectId;
       const presenterId = data.presenterId !== undefined ? data.presenterId : current.presenterId;
       const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
+      const attachmentName = data.attachmentName !== undefined ? data.attachmentName : current.attachmentName;
+      const attachmentData = data.attachmentData !== undefined ? data.attachmentData : current.attachmentData;
 
       await dbQuery(`
         UPDATE "irPresentation" SET
           title = $1, conference = $2, type = $3, status = $4,
-          "projectId" = $5, "presenterId" = $6, "isDeleted" = $7, "updatedAt" = CURRENT_TIMESTAMP
-        WHERE id = $8
+          "projectId" = $5, "presenterId" = $6, "attachmentName" = $7, "attachmentData" = $8, "isDeleted" = $9, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $10
       `, [
-        title, conference, type, status, projectId || null, presenterId, isDeleted, id
+        title, conference, type, status, projectId || null, presenterId, attachmentName || null, attachmentData || null, isDeleted, id
       ]);
       const result = await realDbHandlers.presentations.findUnique(id);
       await writeRealAuditLog('irPresentation', id, 'UPDATE', current, result, performedBy);

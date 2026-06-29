@@ -44,6 +44,8 @@ interface Project {
   leaderId: string;
   ceuConsultId?: string | null;
   ceuBypassReason?: string | null;
+  attachmentName?: string | null;
+  attachmentData?: string | null;
 }
 
 interface Publication {
@@ -57,6 +59,8 @@ interface Publication {
   projectId?: string | null;
   project?: Project | null;
   authorId: string;
+  attachmentName?: string | null;
+  attachmentData?: string | null;
 }
 
 interface Presentation {
@@ -68,6 +72,8 @@ interface Presentation {
   projectId?: string | null;
   project?: Project | null;
   presenterId: string;
+  attachmentName?: string | null;
+  attachmentData?: string | null;
 }
 
 interface Consultation {
@@ -110,7 +116,6 @@ export default function ResearcherWorkspace() {
   const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
   const [isPresentationModalOpen, setIsPresentationModalOpen] = useState(false);
 
-  // Forms
   const [projectForm, setProjectForm] = useState({
     title: '',
     status: 'PROPOSED' as 'PROPOSED' | 'APPROVED' | 'ONGOING' | 'COMPLETED' | 'TERMINATED',
@@ -124,6 +129,8 @@ export default function ResearcherWorkspace() {
     department: 'คณะแพทยศาสตร์',
     ceuConsultId: '',
     ceuBypassReason: '',
+    attachmentName: '',
+    attachmentData: '',
   });
   const [publicationForm, setPublicationForm] = useState({
     title: '',
@@ -132,6 +139,8 @@ export default function ResearcherWorkspace() {
     rewardAmount: 0,
     projectId: '',
     status: 'WRITING' as 'WRITING' | 'UNDER_REVIEW' | 'PUBLISHED' | 'REWARDED',
+    attachmentName: '',
+    attachmentData: '',
   });
   const [consultationForm, setConsultationForm] = useState({
     type: 'PROTOCOL' as 'PROTOCOL' | 'STATISTICAL',
@@ -144,6 +153,8 @@ export default function ResearcherWorkspace() {
     type: 'ORAL' as 'ORAL' | 'POSTER',
     status: 'PENDING' as 'PENDING' | 'PRESENTED',
     projectId: '',
+    attachmentName: '',
+    attachmentData: '',
   });
 
   const [profileForm, setProfileForm] = useState({
@@ -272,7 +283,7 @@ export default function ResearcherWorkspace() {
   };
 
   // Edit Initiator Functions
-  const handleEditProject = (p: Project) => {
+  const handleEditProject = (p: any) => {
     setEditingProject(p);
     setProjectForm({
       title: p.title,
@@ -287,11 +298,13 @@ export default function ResearcherWorkspace() {
       department: p.department || 'คณะแพทยศาสตร์',
       ceuConsultId: p.ceuConsultId || '',
       ceuBypassReason: p.ceuBypassReason || '',
+      attachmentName: p.attachmentName || '',
+      attachmentData: p.attachmentData || '',
     });
     setIsProjectModalOpen(true);
   };
 
-  const handleEditPublication = (pub: Publication) => {
+  const handleEditPublication = (pub: any) => {
     setEditingPublication(pub);
     setPublicationForm({
       title: pub.title,
@@ -300,6 +313,8 @@ export default function ResearcherWorkspace() {
       rewardAmount: pub.rewardAmount,
       projectId: pub.projectId || '',
       status: pub.status,
+      attachmentName: pub.attachmentName || '',
+      attachmentData: pub.attachmentData || '',
     });
     setIsPublicationModalOpen(true);
   };
@@ -314,7 +329,7 @@ export default function ResearcherWorkspace() {
     setIsConsultationModalOpen(true);
   };
 
-  const handleEditPresentation = (pres: Presentation) => {
+  const handleEditPresentation = (pres: any) => {
     setEditingPresentation(pres);
     setPresentationForm({
       title: pres.title,
@@ -322,6 +337,8 @@ export default function ResearcherWorkspace() {
       type: pres.type,
       status: pres.status,
       projectId: pres.projectId || '',
+      attachmentName: pres.attachmentName || '',
+      attachmentData: pres.attachmentData || '',
     });
     setIsPresentationModalOpen(true);
   };
@@ -411,6 +428,8 @@ export default function ResearcherWorkspace() {
         department: 'คณะแพทยศาสตร์',
         ceuConsultId: '',
         ceuBypassReason: '',
+        attachmentName: '',
+        attachmentData: '',
       });
     }
   };
@@ -447,6 +466,8 @@ export default function ResearcherWorkspace() {
         rewardAmount: 0,
         projectId: '',
         status: 'WRITING',
+        attachmentName: '',
+        attachmentData: '',
       });
     }
   };
@@ -513,6 +534,8 @@ export default function ResearcherWorkspace() {
         type: 'ORAL',
         status: 'PENDING',
         projectId: '',
+        attachmentName: '',
+        attachmentData: '',
       });
     }
   };
@@ -530,6 +553,46 @@ export default function ResearcherWorkspace() {
       }),
       'บันทึกการตั้งค่าโปรไฟล์ส่วนตัวเรียบร้อยแล้ว!'
     );
+  };
+
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (val: { name: string; data: string }) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('ขนาดไฟล์ต้องไม่เกิน 2MB เพื่อความเสถียรของฐานข้อมูล');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setter({
+        name: file.name,
+        data: reader.result as string,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const openAttachment = (data?: string | null, name?: string | null) => {
+    if (!data) return;
+    try {
+      const win = window.open();
+      if (win) {
+        win.document.title = name || 'เอกสารแนบ';
+        if (data.startsWith('data:application/pdf')) {
+          win.document.write(`<iframe src="${data}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        } else {
+          win.document.write(`<img src="${data}" style="max-width:100%; height:auto; display:block; margin:auto;" />`);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // Helpers
@@ -678,6 +741,8 @@ export default function ResearcherWorkspace() {
                     department: 'คณะแพทยศาสตร์',
                     ceuConsultId: '',
                     ceuBypassReason: '',
+                    attachmentName: '',
+                    attachmentData: '',
                   });
                   setIsProjectModalOpen(true);
                 }}
@@ -765,6 +830,18 @@ export default function ResearcherWorkspace() {
                             <span>⚠️ ยังไม่ได้ผ่านสถิติ CEU หรือขอยกเว้น</span>
                           </p>
                         )}
+                        {p.attachmentName && p.attachmentData && (
+                          <div className="mt-3 pt-2 border-t border-[#ebdccf]/50">
+                            <button
+                              type="button"
+                              onClick={() => openAttachment(p.attachmentData, p.attachmentName)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold bg-[#f5e6d3] text-[#b45309] rounded-xl hover:bg-[#d97706]/10 transition-all border border-[#ebdccf]"
+                            >
+                              <span>📎 ดูหลักฐานเอกสารแนบ:</span>
+                              <span className="underline max-w-[140px] truncate">{p.attachmentName}</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -802,6 +879,8 @@ export default function ResearcherWorkspace() {
                     rewardAmount: 0,
                     projectId: '',
                     status: 'WRITING',
+                    attachmentName: '',
+                    attachmentData: '',
                   });
                   setIsPublicationModalOpen(true);
                 }}
@@ -838,6 +917,18 @@ export default function ResearcherWorkspace() {
                              'ขอรางวัลตีพิมพ์สำเร็จ'}
                           </span>
                         </p>
+                        {p.attachmentName && p.attachmentData && (
+                          <div className="mt-3 pt-2 border-t border-[#ebdccf]/50">
+                            <button
+                              type="button"
+                              onClick={() => openAttachment(p.attachmentData, p.attachmentName)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold bg-[#f5e6d3] text-[#b45309] rounded-xl hover:bg-[#d97706]/10 transition-all border border-[#ebdccf]"
+                            >
+                              <span>📎 ดูเอกสารบทความวิจัย:</span>
+                              <span className="underline max-w-[140px] truncate">{p.attachmentName}</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-4">
@@ -1045,6 +1136,8 @@ export default function ResearcherWorkspace() {
                     type: 'ORAL',
                     status: 'PENDING',
                     projectId: '',
+                    attachmentName: '',
+                    attachmentData: '',
                   });
                   setIsPresentationModalOpen(true);
                 }}
@@ -1074,6 +1167,18 @@ export default function ResearcherWorkspace() {
                         <span className="text-xs text-[#7a685c] font-semibold">{p.conference}</span>
                       </div>
                       <h3 className="text-base font-bold text-[#3c2f25] mt-3">{p.title}</h3>
+                      {p.attachmentName && p.attachmentData && (
+                        <div className="mt-3 pt-2 border-t border-[#ebdccf]/50">
+                          <button
+                            type="button"
+                            onClick={() => openAttachment(p.attachmentData, p.attachmentName)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold bg-[#f5e6d3] text-[#b45309] rounded-xl hover:bg-[#d97706]/10 transition-all border border-[#ebdccf]"
+                          >
+                            <span>📎 ดูหลักฐานนำเสนอผลงาน:</span>
+                            <span className="underline max-w-[140px] truncate">{p.attachmentName}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4 shrink-0">
@@ -1394,6 +1499,34 @@ export default function ResearcherWorkspace() {
                 )}
               </div>
 
+              <div className="border-t border-[#ebdccf] pt-4 mt-2 space-y-2">
+                <label className="text-xs font-semibold text-[#7a685c] block">แนบหลักฐานเอกสาร (PDF หรือรูปภาพ ไม่เกิน 2MB)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => handleFileChange(e, (file) => setProjectForm({
+                      ...projectForm,
+                      attachmentName: file.name,
+                      attachmentData: file.data
+                    }))}
+                    className="block w-full text-xs text-[#7a685c] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#ebdccf] file:text-[#3c2f25] hover:file:bg-[#d97706]/20 cursor-pointer"
+                  />
+                </div>
+                {projectForm.attachmentName && (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-xs text-emerald-800">
+                    <span>📎 {projectForm.attachmentName}</span>
+                    <button
+                      type="button"
+                      onClick={() => setProjectForm({ ...projectForm, attachmentName: '', attachmentData: '' })}
+                      className="text-rose-500 hover:text-rose-700 ml-auto font-bold"
+                    >
+                      ลบออก
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#ebdccf]">
                 <button
                   type="button"
@@ -1496,6 +1629,34 @@ export default function ResearcherWorkspace() {
                   onChange={(e) => setPublicationForm({ ...publicationForm, rewardAmount: Number(e.target.value) })}
                   className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25]"
                 />
+              </div>
+
+              <div className="border-t border-[#ebdccf] pt-4 mt-2 space-y-2">
+                <label className="text-xs font-semibold text-[#7a685c] block">แนบไฟล์บทความวิจัย หรือใบตอบรับตีพิมพ์ (PDF หรือรูปภาพ ไม่เกิน 2MB)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => handleFileChange(e, (file) => setPublicationForm({
+                      ...publicationForm,
+                      attachmentName: file.name,
+                      attachmentData: file.data
+                    }))}
+                    className="block w-full text-xs text-[#7a685c] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#ebdccf] file:text-[#3c2f25] hover:file:bg-[#d97706]/20 cursor-pointer"
+                  />
+                </div>
+                {publicationForm.attachmentName && (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-xs text-emerald-800">
+                    <span>📎 {publicationForm.attachmentName}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPublicationForm({ ...publicationForm, attachmentName: '', attachmentData: '' })}
+                      className="text-rose-500 hover:text-rose-700 ml-auto font-bold"
+                    >
+                      ลบออก
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#ebdccf]">
@@ -1654,6 +1815,34 @@ export default function ResearcherWorkspace() {
                     <option key={p.id} value={p.id}>{p.title}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="border-t border-[#ebdccf] pt-4 mt-2 space-y-2">
+                <label className="text-xs font-semibold text-[#7a685c] block">แนบภาพบรรยากาศ, สไลด์, หรือเกียรติบัตร (PDF หรือรูปภาพ ไม่เกิน 2MB)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => handleFileChange(e, (file) => setPresentationForm({
+                      ...presentationForm,
+                      attachmentName: file.name,
+                      attachmentData: file.data
+                    }))}
+                    className="block w-full text-xs text-[#7a685c] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#ebdccf] file:text-[#3c2f25] hover:file:bg-[#d97706]/20 cursor-pointer"
+                  />
+                </div>
+                {presentationForm.attachmentName && (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-xs text-emerald-800">
+                    <span>📎 {presentationForm.attachmentName}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPresentationForm({ ...presentationForm, attachmentName: '', attachmentData: '' })}
+                      className="text-rose-500 hover:text-rose-700 ml-auto font-bold"
+                    >
+                      ลบออก
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#ebdccf]">
