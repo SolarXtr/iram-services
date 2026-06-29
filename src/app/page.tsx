@@ -163,6 +163,22 @@ export default function ResearchManagementDashboard() {
   const currentUserRoles = (currentUser ? (currentUser.roles || (currentUser.role ? currentUser.role.split(',') : [])) : ['STAFF']) as UserRole[];
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedUserId = localStorage.getItem('impersonatedUserId');
+      if (savedUserId && savedUserId !== currentUserId) {
+        setCurrentUserId(savedUserId);
+      }
+    }
+  }, []);
+
+  const handleUserChange = (val: string) => {
+    setCurrentUserId(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('impersonatedUserId', val);
+    }
+  };
+
+  useEffect(() => {
     if (currentUserRoles.length > 0 && !currentUserRoles.includes(activeRole)) {
       setActiveRole(currentUserRoles[0]);
     }
@@ -740,7 +756,7 @@ export default function ResearchManagementDashboard() {
               />
               <select
                 value={currentUserId}
-                onChange={(e) => setCurrentUserId(e.target.value)}
+                onChange={(e) => handleUserChange(e.target.value)}
                 className="bg-[#fdfcf9] text-xs font-bold text-[#3c2f25] border-0 focus:ring-2 focus:ring-[#d97706] rounded-lg px-2 py-1 cursor-pointer transition-colors max-w-[150px]"
               >
                 {users

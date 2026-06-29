@@ -165,6 +165,23 @@ export default function ResearcherWorkspace() {
     }
   }, [selectedResearcher]);
 
+  // Load and sync impersonation ID via localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedUserId = localStorage.getItem('impersonatedUserId');
+      if (savedUserId && savedUserId !== selectedResearcherId) {
+        setSelectedResearcherId(savedUserId);
+      }
+    }
+  }, [selectedResearcherId]);
+
+  const handleUserChange = (val: string) => {
+    setSelectedResearcherId(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('impersonatedUserId', val);
+    }
+  };
+
   // Auto-clear success/error toast notifications after 3 seconds
   useEffect(() => {
     if (actionStatus && actionStatus.type !== 'loading') {
@@ -577,7 +594,7 @@ export default function ResearcherWorkspace() {
                 <select
                   value={selectedResearcherId}
                   onChange={(e) => {
-                    setSelectedResearcherId(e.target.value);
+                    handleUserChange(e.target.value);
                     setEditingProject(null);
                     setEditingPublication(null);
                     setEditingConsultation(null);
