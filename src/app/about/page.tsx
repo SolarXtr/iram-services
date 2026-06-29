@@ -102,7 +102,7 @@ export default function AboutProjectPage() {
             <span>กระบวนการทำงานแบบเป็นขั้นตอน (Development Timeline)</span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
             {/* Step 1 */}
             <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
@@ -134,6 +134,17 @@ export default function AboutProjectPage() {
               <h3 className="font-bold text-base">การแยกส่วนสิทธิ์และความปลอดภัย (Access Control)</h3>
               <p className="text-xs text-[#7a685c] mt-2.5 leading-relaxed">
                 ออกแบบระบบสิทธิ์ Role-Based: หน้าแรกสำหรับเจ้าหน้าที่ (Staff ดูแลทั้งหมด), หน้าแดชบอร์ดสรุปผลรวมสำหรับทุกคน และหน้าพื้นที่ทำงานนักวิจัย ที่มีสิทธิ์เพิ่ม/แก้ไข แต่จำกัดสิทธิ์ <strong>ห้ามลบข้อมูล</strong> (สิทธิ์ลบยกให้เจ้าหน้าที่เป็นผู้ดูแล)
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-[#d97706] flex items-center justify-center font-bold text-sm mb-4">
+                04
+              </div>
+              <h3 className="font-bold text-base">ระบบอำนวยความสะดวกและซิงก์สิทธิ์ (Switcher & CEU Sync)</h3>
+              <p className="text-xs text-[#7a685c] mt-2.5 leading-relaxed">
+                เพิ่มระบบค้นหารายชื่อจำลองผู้ใช้แบบ Real-time, ระบบแยกประเภทรายงานงบประมาณทุนวิจัย และการดึงข้อมูลอัตโนมัติ (Auto-fill) จากการจองคิวนัดหมาย CEU เข้าสู่โครงการขอทุน พร้อมระบบซิงก์ผู้ใช้ข้ามหน้าผ่าน localStorage
               </p>
             </div>
 
@@ -341,6 +352,32 @@ export default function AboutProjectPage() {
               </div>
             </div>
 
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">ปัญหาการกรอกฟอร์มขอทุนซ้ำซ้อนและการแยกแผงรายงาน Dashboard (Redundant Form Filling & Decoupled Reporting)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> นักวิจัยต้องกรอกชื่อโครงการและภาควิชาซ้ำซ้อนหลังเข้ารับคำปรึกษา CEU รวมถึงแดชบอร์ดสรุปงบประมาณฝั่งผู้บริหารมีการนับยอดเงินทุนปะปนกับโครงการ CEU นำเข้าที่มีงบเป็น 0 ทำให้ค่าเฉลี่ยสถิติเสียหาย
+                  <br /><strong>ทางแก้:</strong> แยกหมวดหมู่รายงานอย่างเด็ดขาดโดยเช็ค <code>id.startsWith('CEU-')</code> พร้อมพัฒนาโครงสร้างดึงข้อมูลอัตโนมัติ (Auto-fill) ในหน้าเสนอขอทุนเมื่อคลิกจับคู่ใบจองคิว CEU
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">การสลับตัวตนจำลองสิทธิ์ไม่ตอบสนองข้ามหน้าเพจ (Cross-page Impersonation State Out-of-sync)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> การเลือกจำลองสิทธิ์นักวิจัยเปลี่ยนเฉพาะข้อมูลในหน้าเดี่ยว เมื่อผู้ใช้กดเปลี่ยนลิงก์ย้ายหน้า ตัวตนจำลองจะไม่เปลี่ยนตามเนื่องจากแยกสเตตภายในกันทำงาน
+                  <br /><strong>ทางแก้:</strong> เชื่อมการทำงานสวิตช์แลกเปลี่ยนสิทธิ์เข้ากับ <code>localStorage</code> เพื่อซิงก์รหัสสิทธิ์จำลองและอัปเดตข้อมูลนักวิจัยอิงตามหน้าจอปัจจุบันของบราวเซอร์ทันที
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
  
@@ -361,7 +398,11 @@ export default function AboutProjectPage() {
               <li>ระบบ **Permission-Based & Multi-Role** ทำงานสมบูรณ์แบบ ทั้งการระบุบทบาทควบใน D1 และการเพิ่มปุ่มสลับมุมมองโหมดทำงาน (Context Switcher) เสริม UX</li>
               <li>ระบบ **Safe Deletion & Former Researcher Label** ป้องกันข้อมูลและ KPI เสียหาย โดยติดวงเล็บเครื่องหมาย *(พ้นสภาพ)* เมื่อสมาชิกถูกลบสำเร็จ</li>
               <li>ระบบ **Independent Restore & Sub-Tabs Management** เพิ่มปุ่มกู้คืนสิทธิ์ข้อมูล (Undelete) และแท็บคัดแยก Active/Deleted ในทุกๆ หมวดหมู่ย่อยสำหรับแอดมินเสร็จสมบูรณ์ ปิดช่องโหว่การจัดการข้อมูลหลังการ Soft Delete</li>
-              <li>**นำเข้าประวัติการเข้าร่วมคำปรึกษา CEU ปริมาณมากสำเร็จ:** นำข้อมูลจาก Excel 125 โครงการ / 148 คิวรับนัดคำปรึกษาจริงลง D1 Database และซิงก์เข้าสู่ตัวจำลองจำหน่ายเรียบร้อยแล้ว</li>
+              <li>**นำเข้าประวัติการเข้าร่วมคำปรึกษา CEU ปริมาณมากสำเร็จ:** นำข้อมูลจาก Excel 120 โครงการ / 148 คิวรับนัดคำปรึกษาจริงลง D1 Database และซิงก์เข้าสู่ตัวจำลองเรียบร้อยแล้ว</li>
+              <li>**ระบบคัดกรองพิมพ์ค้นหานักวิจัยจำลอง (Search Impersonator Switcher):** กรองชื่อผู้ใช้ปริมาณมากได้ทันใจแบบ Real-time บนระบบสลับสิทธิ์</li>
+              <li>**การจัดสรรรายงานแยกแยะขาด (Decoupled Dashboard Reports):** คัดแยกและรายงานงบประมาณทุนวิจัยที่เสนอขอจริง ออกจากโครงการในระบบ CEU บน Executive Dashboard เพื่อสถิติที่ตรงความเป็นจริง</li>
+              <li>**เชื่อมต่อคิวรับคำปรึกษา CEU ไดนามิกพร้อมระบบป้อนคู่อัตโนมัติ (Dynamic CEU Linkage & Auto-fill):** สลับเชื่อมโยงคิวคำปรึกษา CEU ได้ทุกสถานะนัดหมาย พร้อมดึงชื่อโครงการและสังกัดคณะมาป้อนบนแบบฟอร์มให้อัตโนมัติ เพื่อขจัดขั้นตอนการพิมพ์ฟอร์มซ้ำซ้อน</li>
+              <li>**ระบบรักษาและซิงก์จำลองสิทธิ์ข้ามหน้าเพจ (Cross-page Impersonator Sync):** บันทึกจำลองผู้ใช้ผ่านบราวเซอร์ `localStorage` ทำงานซิงก์สิทธิ์เปลี่ยนข้อมูลในทุกหน้าเพจให้อัตโนมัติทันที</li>
             </ul>
           </div>
 
