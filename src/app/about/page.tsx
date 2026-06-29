@@ -328,6 +328,19 @@ export default function AboutProjectPage() {
               </div>
             </div>
 
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">การกู้คืนข้อมูลแบบเป็นอิสระต่อกันและการกรองฟอร์มอัจฉริยะ (Independent Restore & Form Decoupling)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> การที่ผู้ดูแลระบบหรือ Staff ต้องการกู้คืนข้อมูล (Undelete) ของโครงการหรือผลงานวิจัยที่เชื่อมโยงกับผู้ใช้ที่ยังถูกลบอยู่ หากใช้การบล็อกอย่างเข้มข้นจะขัดต่อขั้นตอนการบริหารที่ยืดหยุ่นหน้างาน
+                  <br /><strong>ทางแก้:</strong> ปรับกลไกเป็นระบบการกู้คืนเป็นอิสระ (Independent Restore) ยอมให้กู้คืนรายการย่อยใดๆ ได้อย่างเป็นสัดส่วน โดยมีระบบ Join คอยแสดงป้ายกำกับสถานะ <code>(พ้นสภาพ)</code> หรือ <code>(ถูกลบ)</code> อัตโนมัติในส่วนที่เชื่อมโยง พร้อมผสานระบบป้องกันฝั่งกรอกแบบฟอร์มเพื่อบล็อกไม่ให้สามารถนำรายชื่อหรือโครงการที่ถูกลบอยู่มาสร้างความสัมพันธ์ใหม่ได้อีก
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
  
@@ -347,6 +360,7 @@ export default function AboutProjectPage() {
               <li>ระบบ **Soft Delete & Audit Log** ทำงานสมบูรณ์แบบ ช่วยปกป้องการสูญหายของข้อมูลสำคัญ</li>
               <li>ระบบ **Permission-Based & Multi-Role** ทำงานสมบูรณ์แบบ ทั้งการระบุบทบาทควบใน D1 และการเพิ่มปุ่มสลับมุมมองโหมดทำงาน (Context Switcher) เสริม UX</li>
               <li>ระบบ **Safe Deletion & Former Researcher Label** ป้องกันข้อมูลและ KPI เสียหาย โดยติดวงเล็บเครื่องหมาย *(พ้นสภาพ)* เมื่อสมาชิกถูกลบสำเร็จ</li>
+              <li>ระบบ **Independent Restore & Sub-Tabs Management** เพิ่มปุ่มกู้คืนสิทธิ์ข้อมูล (Undelete) และแท็บคัดแยก Active/Deleted ในทุกๆ หมวดหมู่ย่อยสำหรับแอดมินเสร็จสมบูรณ์ ปิดช่องโหว่การจัดการข้อมูลหลังการ Soft Delete</li>
               <li>**นำเข้าประวัติการเข้าร่วมคำปรึกษา CEU ปริมาณมากสำเร็จ:** นำข้อมูลจาก Excel 125 โครงการ / 148 คิวรับนัดคำปรึกษาจริงลง D1 Database และซิงก์เข้าสู่ตัวจำลองจำหน่ายเรียบร้อยแล้ว</li>
             </ul>
           </div>
