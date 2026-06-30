@@ -102,7 +102,7 @@ export default function AboutProjectPage() {
             <span>กระบวนการทำงานแบบเป็นขั้นตอน (Development Timeline)</span>
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             
             {/* Step 1 */}
             <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
@@ -145,6 +145,17 @@ export default function AboutProjectPage() {
               <h3 className="font-bold text-base">ระบบอำนวยความสะดวกและซิงก์สิทธิ์ (Switcher & CEU Sync)</h3>
               <p className="text-xs text-[#7a685c] mt-2.5 leading-relaxed">
                 เพิ่มระบบค้นหารายชื่อจำลองผู้ใช้แบบ Real-time, ระบบแยกประเภทรายงานงบประมาณทุนวิจัย และการดึงข้อมูลอัตโนมัติ (Auto-fill) จากการจองคิวนัดหมาย CEU เข้าสู่โครงการขอทุน พร้อมระบบซิงก์ผู้ใช้ข้ามหน้าผ่าน localStorage
+              </p>
+            </div>
+
+            {/* Step 5 */}
+            <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-[#d97706] flex items-center justify-center font-bold text-sm mb-4">
+                05
+              </div>
+              <h3 className="font-bold text-base">ระบบแนบเอกสารและแผนผังขั้นตอนนำเสนอ (File Uploads & Workflow)</h3>
+              <p className="text-xs text-[#7a685c] mt-2.5 leading-relaxed">
+                พัฒนาโมเดลรองรับการอัปโหลดไฟล์หลักฐาน PDF/รูปภาพ (แปลงเป็น Base64) และเพิ่มแผนผังอธิบายกระบวนการเดินทางไปนำเสนอผลงานวิจัย 7 ขั้นตอนแบบโต้ตอบได้ในส่วนงานนักวิจัย
               </p>
             </div>
 
