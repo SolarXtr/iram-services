@@ -28,6 +28,9 @@ interface UserType {
   email: string;
   role: string;
   roles?: string[];
+  title?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   isDeleted?: boolean;
 }
 
@@ -203,6 +206,9 @@ export default function ResearcherWorkspace() {
   const [profileForm, setProfileForm] = useState({
     name: '',
     email: '',
+    title: '',
+    firstName: '',
+    lastName: '',
   });
 
   const [impersonateSearch, setImpersonateSearch] = useState('');
@@ -215,6 +221,9 @@ export default function ResearcherWorkspace() {
       setProfileForm({
         name: selectedResearcher.name,
         email: selectedResearcher.email,
+        title: selectedResearcher.title || '',
+        firstName: selectedResearcher.firstName || '',
+        lastName: selectedResearcher.lastName || '',
       });
     }
   }, [selectedResearcher]);
@@ -635,13 +644,17 @@ export default function ResearcherWorkspace() {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedResearcherId) return;
+    const cleanName = `${profileForm.title} ${profileForm.firstName} ${profileForm.lastName}`.trim().replace(/\s+/, ' ');
 
     await runAction(
       'กำลังบันทึกข้อมูลส่วนตัว...',
       () => fetch(`/api/users/${selectedResearcherId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileForm)
+        body: JSON.stringify({
+          ...profileForm,
+          name: cleanName
+        })
       }),
       'บันทึกการตั้งค่าโปรไฟล์ส่วนตัวเรียบร้อยแล้ว!'
     );
@@ -1375,16 +1388,39 @@ export default function ResearcherWorkspace() {
                 </div>
 
                 <div className="border-t border-[#ebdccf]/60 pt-6 space-y-4">
-                  <div>
-                    <label className="text-xs font-bold text-[#7a685c] block mb-2 uppercase tracking-wider">ชื่อ-นามสกุลจริง</label>
-                    <input
-                      type="text"
-                      required
-                      value={profileForm.name}
-                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4.5 py-3 text-sm text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] focus:border-[#d97706] font-medium"
-                      placeholder="ระบุชื่อ-นามสกุล..."
-                    />
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1">
+                      <label className="text-xs font-bold text-[#7a685c] block mb-2 uppercase tracking-wider">คำนำหน้า</label>
+                      <input
+                        type="text"
+                        placeholder="ศ.ดร. / นาย"
+                        value={profileForm.title}
+                        onChange={(e) => setProfileForm({ ...profileForm, title: e.target.value })}
+                        className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-3 text-sm text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] font-medium"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <label className="text-xs font-bold text-[#7a685c] block mb-2 uppercase tracking-wider">ชื่อจริง</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="ชื่อจริง"
+                        value={profileForm.firstName}
+                        onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                        className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-3 text-sm text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] font-medium"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <label className="text-xs font-bold text-[#7a685c] block mb-2 uppercase tracking-wider">นามสกุล</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="นามสกุล"
+                        value={profileForm.lastName}
+                        onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                        className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-3 text-sm text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] font-medium"
+                      />
+                    </div>
                   </div>
 
                   <div>

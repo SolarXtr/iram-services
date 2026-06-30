@@ -33,6 +33,9 @@ interface User {
   email: string;
   role: string;
   roles?: string[];
+  title?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   isDeleted?: boolean;
 }
 
@@ -236,7 +239,21 @@ export default function ResearchManagementDashboard() {
   };
 
   // Form States
-  const [userForm, setUserForm] = useState<{ name: string; email: string; rolesList: UserRole[] }>({ name: '', email: '', rolesList: ['RESEARCHER'] });
+  const [userForm, setUserForm] = useState<{
+    name: string;
+    email: string;
+    rolesList: UserRole[];
+    title: string;
+    firstName: string;
+    lastName: string;
+  }>({
+    name: '',
+    email: '',
+    rolesList: ['RESEARCHER'],
+    title: '',
+    firstName: '',
+    lastName: ''
+  });
   const [projectForm, setProjectForm] = useState<{
     title: string;
     status: 'PROPOSED' | 'APPROVED' | 'ONGOING' | 'COMPLETED' | 'TERMINATED';
@@ -369,13 +386,17 @@ export default function ResearchManagementDashboard() {
     e.preventDefault();
     const method = editingUser ? 'PUT' : 'POST';
     const url = editingUser ? `/api/users/${editingUser.id}` : '/api/users';
+    const cleanName = `${userForm.title} ${userForm.firstName} ${userForm.lastName}`.trim().replace(/\s+/, ' ');
     
     try {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: userForm.name,
+          name: cleanName,
+          title: userForm.title,
+          firstName: userForm.firstName,
+          lastName: userForm.lastName,
           email: userForm.email,
           role: userForm.rolesList.join(','),
         }),
@@ -383,7 +404,7 @@ export default function ResearchManagementDashboard() {
       if (res.ok) {
         setIsUserModalOpen(false);
         setEditingUser(null);
-        setUserForm({ name: '', email: '', rolesList: ['RESEARCHER'] });
+        setUserForm({ name: '', email: '', rolesList: ['RESEARCHER'], title: '', firstName: '', lastName: '' });
         fetchData();
       }
     } catch (e) {
@@ -394,7 +415,14 @@ export default function ResearchManagementDashboard() {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     const rolesList = (user.roles || (user.role ? user.role.split(',') : [])) as UserRole[];
-    setUserForm({ name: user.name, email: user.email, rolesList });
+    setUserForm({
+      name: user.name,
+      email: user.email,
+      rolesList,
+      title: user.title || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || ''
+    });
     setIsUserModalOpen(true);
   };
 
@@ -1286,7 +1314,7 @@ export default function ResearchManagementDashboard() {
                 </div>
                 {hasPermission('MANAGE_USERS') && usersSubTab === 'active' && (
                   <button
-                    onClick={() => { setEditingUser(null); setUserForm({ name: '', email: '', rolesList: ['RESEARCHER'] }); setIsUserModalOpen(true); }}
+                    onClick={() => { setEditingUser(null); setUserForm({ name: '', email: '', rolesList: ['RESEARCHER'], title: '', firstName: '', lastName: '' }); setIsUserModalOpen(true); }}
                     className="flex items-center gap-2 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] font-semibold text-sm px-4.5 py-2.5 rounded-xl shadow-lg shadow-amber-600/10 active:scale-95 transition-all"
                   >
                     <Plus className="h-4.5 w-4.5" />
@@ -2001,15 +2029,39 @@ export default function ResearchManagementDashboard() {
               {editingUser ? 'แก้ไขข้อมูลผู้ใช้งาน' : 'เพิ่มข้อมูลผู้ใช้งานใหม่'}
             </h3>
             <form onSubmit={handleUserSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-[#7a685c] block mb-2">ชื่อ-นามสกุล</label>
-                <input
-                  type="text"
-                  required
-                  value={userForm.name}
-                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-1">
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">คำนำหน้า</label>
+                  <input
+                    type="text"
+                    placeholder="ศ.ดร. / นาย"
+                    value={userForm.title}
+                    onChange={(e) => setUserForm({ ...userForm, title: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-3 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">ชื่อจริง</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ชื่อจริง"
+                    value={userForm.firstName}
+                    onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-3 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">นามสกุล</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="นามสกุล"
+                    value={userForm.lastName}
+                    onChange={(e) => setUserForm({ ...userForm, lastName: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-3 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#7a685c] block mb-2">อีเมลติดต่อ</label>

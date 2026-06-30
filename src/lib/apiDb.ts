@@ -74,10 +74,52 @@ const writeRealAuditLog = async (
   }
 };
 
+export const splitThaiName = (fullName: string) => {
+  if (!fullName) return { title: '', firstName: '', lastName: '' };
+  const prefixes = [
+    'ศ.ดร.นพ.', 'ศ.ดร.พญ.', 'ศ.ดร.', 'รศ.ดร.นพ.', 'รศ.ดร.พญ.', 'รศ.ดร.', 'ผศ.ดร.นพ.', 'ผศ.ดร.พญ.', 'ผศ.ดร.',
+    'ศ.นพ.', 'ศ.พญ.', 'ศ.', 'รศ.นพ.', 'รศ.พญ.', 'รศ.', 'ผศ.นพ.', 'ผศ.พญ.', 'ผศ.',
+    'ดร.นพ.', 'ดร.พญ.', 'ดร.', 'นพ.', 'พญ.', 'นายแพทย์', 'แพทย์หญิง', 'นาย', 'นางสาว', 'นาง'
+  ];
+  let cleanName = fullName.trim();
+  let matchedPrefix = '';
+  for (const p of prefixes) {
+    if (cleanName.startsWith(p)) {
+      matchedPrefix = p;
+      cleanName = cleanName.slice(p.length).trim();
+      break;
+    }
+  }
+  const parts = cleanName.split(/\s+/);
+  const firstName = parts[0] || '';
+  const lastName = parts.slice(1).join(' ') || '';
+  return { title: matchedPrefix, firstName, lastName };
+};
+
 // Migrate D1 database table columns if they do not exist
 let migrated = false;
 export const ensureMigrations = async () => {
   if (migrated || getIsMock()) return;
+  try {
+    await dbQuery('ALTER TABLE "irUser" ADD COLUMN "title" TEXT');
+  } catch (e) {}
+  try {
+    await dbQuery('ALTER TABLE "irUser" ADD COLUMN "firstName" TEXT');
+  } catch (e) {}
+  try {
+    await dbQuery('ALTER TABLE "irUser" ADD COLUMN "lastName" TEXT');
+  } catch (e) {}
+  try {
+    const checkRes = await dbQuery('SELECT id, name FROM "irUser" WHERE "firstName" IS NULL OR "firstName" = \'\'');
+    for (const r of checkRes.rows) {
+      const { title, firstName, lastName } = splitThaiName(r.name);
+      await dbQuery('UPDATE "irUser" SET "title" = $1, "firstName" = $2, "lastName" = $3 WHERE id = $4', [
+        title, firstName, lastName, r.id
+      ]);
+    }
+  } catch (e) {
+    console.error("Auto-migration name splitting failed:", e);
+  }
   try {
     await dbQuery('ALTER TABLE "irResearchProject" ADD COLUMN "ceuConsultId" TEXT');
   } catch (e) {
@@ -151,8 +193,8 @@ const realDbHandlers = {
     findMany: async (options?: { includeDeleted?: boolean }) => {
       const includeDeleted = options?.includeDeleted ?? false;
       const sql = includeDeleted
-        ? 'SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" ORDER BY "createdAt" DESC'
-        : 'SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "createdAt" DESC';
+        ? 'SELECT id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt" FROM "irUser" ORDER BY "firstName" ASC'
+        : 'SELECT id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "firstName" ASC';
       const res = await dbQuery(sql);
       return res.rows.map((r: any) => mapUserRoles({
         ...r,
@@ -161,7 +203,7 @@ const realDbHandlers = {
       }));
     },
     findUnique: async (id: string) => {
-      const res = await dbQuery('SELECT id, name, email, role, "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE id = $1', [id]);
+      const res = await dbQuery('SELECT id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE id = $1', [id]);
       const r = res.rows[0];
       if (!r) return null;
       return mapUserRoles({
@@ -172,9 +214,13 @@ const realDbHandlers = {
     },
     create: async (data: any, performedBy?: string | null) => {
       const id = data.id || crypto.randomUUID();
+      const title = data.title || '';
+      const firstName = data.firstName || '';
+      const lastName = data.lastName || '';
+      const name = data.name || `${title} ${firstName} ${lastName}`.trim().replace(/\s+/, ' ');
       const res = await dbQuery(
-        'INSERT INTO "irUser" (id, name, email, role, "isDeleted", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
-        [id, data.name, data.email, data.role]
+        'INSERT INTO "irUser" (id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
+        [id, name, data.email, data.role, title, firstName, lastName]
       );
       const r = res.rows[0];
       const result = mapUserRoles({
@@ -190,14 +236,17 @@ const realDbHandlers = {
       const current = currentRes.rows[0];
       if (!current) throw new Error('User not found');
       
-      const name = data.name !== undefined ? data.name : current.name;
+      const title = data.title !== undefined ? data.title : current.title;
+      const firstName = data.firstName !== undefined ? data.firstName : current.firstName;
+      const lastName = data.lastName !== undefined ? data.lastName : current.lastName;
+      const name = data.name || `${title} ${firstName} ${lastName}`.trim().replace(/\s+/, ' ');
       const email = data.email !== undefined ? data.email : current.email;
       const role = data.role !== undefined ? data.role : current.role;
       const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
 
       const res = await dbQuery(
-        'UPDATE "irUser" SET name = $1, email = $2, role = $3, "isDeleted" = $4, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *',
-        [name, email, role, isDeleted, id]
+        'UPDATE "irUser" SET name = $1, email = $2, role = $3, title = $4, "firstName" = $5, "lastName" = $6, "isDeleted" = $7, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $8 RETURNING *',
+        [name, email, role, title, firstName, lastName, isDeleted, id]
       );
       const r = res.rows[0];
       const result = mapUserRoles({

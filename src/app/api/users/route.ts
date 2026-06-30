@@ -17,11 +17,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, role } = body;
-    if (!name || !email || !role) {
+    const { name, email, role, title, firstName, lastName } = body;
+    if ((!name && (!firstName || !lastName)) || !email || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-    const newUser = await apiDb.users.create({ name, email, role });
+    const newUser = await apiDb.users.create({ name, email, role, title, firstName, lastName });
     return NextResponse.json(newUser, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

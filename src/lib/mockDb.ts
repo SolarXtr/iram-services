@@ -5,6 +5,9 @@ export interface MockUser {
   email: string;
   role: string;
   roles?: string[];
+  title?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -131,6 +134,28 @@ function writeDb(data: DBStructure) {
   dbState = data;
 }
 
+const splitThaiName = (fullName: string) => {
+  if (!fullName) return { title: '', firstName: '', lastName: '' };
+  const prefixes = [
+    'ศ.ดร.นพ.', 'ศ.ดร.พญ.', 'ศ.ดร.', 'รศ.ดร.นพ.', 'รศ.ดร.พญ.', 'รศ.ดร.', 'ผศ.ดร.นพ.', 'ผศ.ดร.พญ.', 'ผศ.ดร.',
+    'ศ.นพ.', 'ศ.พญ.', 'ศ.', 'รศ.นพ.', 'รศ.พญ.', 'รศ.', 'ผศ.นพ.', 'ผศ.พญ.', 'ผศ.',
+    'ดร.นพ.', 'ดร.พญ.', 'ดร.', 'นพ.', 'พญ.', 'นายแพทย์', 'แพทย์หญิง', 'นาย', 'นางสาว', 'นาง'
+  ];
+  let cleanName = fullName.trim();
+  let matchedPrefix = '';
+  for (const p of prefixes) {
+    if (cleanName.startsWith(p)) {
+      matchedPrefix = p;
+      cleanName = cleanName.slice(p.length).trim();
+      break;
+    }
+  }
+  const parts = cleanName.split(/\s+/);
+  const firstName = parts[0] || '';
+  const lastName = parts.slice(1).join(' ') || '';
+  return { title: matchedPrefix, firstName, lastName };
+};
+
 // Global helper to write audit logs in mock DB
 const logAction = (tableName: string, recordId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', oldData: any, newData: any, performedBy?: string | null) => {
   const db = readDb();
@@ -164,16 +189,40 @@ export const mockDb = {
   users: {
     findMany: async (options?: { includeDeleted?: boolean }) => {
       const includeDeleted = options?.includeDeleted ?? false;
-      return readDb().users.filter((u) => includeDeleted || !u.isDeleted).map(mapUserRoles);
+      const users = readDb().users.filter((u) => includeDeleted || !u.isDeleted);
+      return users.map((u) => {
+        if (!u.firstName) {
+          const parsed = splitThaiName(u.name);
+          u.title = parsed.title;
+          u.firstName = parsed.firstName;
+          u.lastName = parsed.lastName;
+        }
+        return mapUserRoles(u);
+      }).sort((a, b) => (a.firstName || '').localeCompare(b.firstName || '', 'th'));
     },
     findUnique: async (id: string) => {
       const u = readDb().users.find((u) => u.id === id);
-      return u ? mapUserRoles(u) : null;
+      if (!u) return null;
+      if (!u.firstName) {
+        const parsed = splitThaiName(u.name);
+        u.title = parsed.title;
+        u.firstName = parsed.firstName;
+        u.lastName = parsed.lastName;
+      }
+      return mapUserRoles(u);
     },
     create: async (data: Omit<MockUser, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
       const db = readDb();
+      const title = data.title || '';
+      const firstName = data.firstName || '';
+      const lastName = data.lastName || '';
+      const name = data.name || `${title} ${firstName} ${lastName}`.trim().replace(/\s+/, ' ');
       const newUser: MockUser = {
         ...data,
+        name,
+        title,
+        firstName,
+        lastName,
         id: 'user-' + Date.now(),
         isDeleted: false,
         createdAt: new Date().toISOString(),
@@ -189,9 +238,17 @@ export const mockDb = {
       const idx = db.users.findIndex((u) => u.id === id);
       if (idx === -1) throw new Error('User not found');
       const oldVal = { ...db.users[idx] };
+      const title = data.title !== undefined ? data.title : oldVal.title;
+      const firstName = data.firstName !== undefined ? data.firstName : oldVal.firstName;
+      const lastName = data.lastName !== undefined ? data.lastName : oldVal.lastName;
+      const name = data.name || `${title} ${firstName} ${lastName}`.trim().replace(/\s+/, ' ');
       db.users[idx] = {
         ...db.users[idx],
         ...data,
+        name,
+        title,
+        firstName,
+        lastName,
         updatedAt: new Date().toISOString(),
       };
       writeDb(db);
