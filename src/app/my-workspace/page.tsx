@@ -799,7 +799,7 @@ export default function ResearcherWorkspace() {
             { id: 'publications', label: 'การตีพิมพ์และขอรางวัล', icon: BookOpen, show: true },
             { id: 'consultations', label: 'ตารางนัดหมายปรึกษา CEU', icon: Calendar, show: true },
             { id: 'presentations', label: 'ประวัติการนำเสนอผลงาน', icon: PresIcon, show: true },
-            { id: 'evaluations', label: 'การประเมินโครงการวิจัย (Evaluator)', icon: Award, show: selectedResearcherRoles.includes('EVALUATOR') },
+            { id: 'evaluations', label: 'การประเมินโครงการวิจัย (Evaluator)', icon: Award, show: selectedResearcherRoles.includes('EVALUATOR') || evaluations.some(e => e.evaluatorId === selectedResearcherId && !e.isDeleted) },
             { id: 'profile', label: 'ตั้งค่าข้อมูลส่วนตัว', icon: User, show: true }
           ].filter(tab => tab.show).map(tab => (
             <button

@@ -2438,16 +2438,21 @@ export default function ResearchManagementDashboard() {
                 >
                   <option value="" disabled>-- กรุณาเลือกผู้ประเมิน --</option>
                   {users
-                    .filter((u) => u.role.split(',').includes('EVALUATOR') && !u.isDeleted)
-                    .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.email})
-                      </option>
-                    ))}
+                    .filter((u) => (u.role.split(',').includes('EVALUATOR') || u.role.split(',').includes('RESEARCHER')) && !u.isDeleted)
+                    .map((u) => {
+                      const isInternal = u.role.split(',').includes('RESEARCHER');
+                      const hasEvalRole = u.role.split(',').includes('EVALUATOR');
+                      const displayName = isInternal && !hasEvalRole ? `${u.name} (นักวิจัยภายใน)` : u.name;
+                      return (
+                        <option key={u.id} value={u.id}>
+                          {displayName} ({u.email})
+                        </option>
+                      );
+                    })}
                 </select>
-                {users.filter((u) => u.role.split(',').includes('EVALUATOR') && !u.isDeleted).length === 0 && (
+                {users.filter((u) => (u.role.split(',').includes('EVALUATOR') || u.role.split(',').includes('RESEARCHER')) && !u.isDeleted).length === 0 && (
                   <p className="text-[10px] text-rose-500 font-semibold mt-1">
-                    ⚠️ ไม่มีผู้ใช้ที่มีบทบาทเป็น EVALUATOR ในระบบ กรุณาเพิ่มผู้ใช้หรือเปลี่ยนบทบาทผู้ใช้ก่อน
+                    ⚠️ ไม่มีผู้ใช้ที่เป็นนักวิจัยหรือผู้ทรงคุณวุฒิในระบบ
                   </p>
                 )}
               </div>
