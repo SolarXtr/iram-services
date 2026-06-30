@@ -52,6 +52,8 @@ interface Project {
   isDeleted?: boolean;
   ceuConsultId?: string | null;
   ceuBypassReason?: string | null;
+  attachmentName?: string | null;
+  attachmentData?: string | null;
 }
 
 interface Publication {
@@ -66,6 +68,8 @@ interface Publication {
   authorId: string;
   author?: User;
   isDeleted?: boolean;
+  attachmentName?: string | null;
+  attachmentData?: string | null;
 }
 
 interface Consultation {
@@ -80,6 +84,30 @@ interface Consultation {
   isDeleted?: boolean;
 }
 
+interface Evaluation {
+  id: string;
+  projectId: string;
+  evaluatorId: string;
+  evaluatorType?: string | null;
+  feedbackResearchProcess?: string | null;
+  feedbackOriginality?: string | null;
+  feedbackExpectedOutput?: string | null;
+  feedbackBudgetAppropriate?: string | null;
+  scoreOverallQuality?: number | null;
+  bankAccountName?: string | null;
+  bankName?: string | null;
+  bankBranch?: string | null;
+  bankAccountNumber?: string | null;
+  bankBookAttachmentName?: string | null;
+  bankBookAttachmentData?: string | null;
+  status: 'DRAFT' | 'SUBMITTED';
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  project?: Project | null;
+  evaluator?: User | null;
+}
+
 export default function ResearchManagementDashboard() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations' | 'db-status' | 'db-explorer'>('dashboard');
@@ -91,6 +119,7 @@ export default function ResearchManagementDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDbMock, setIsDbMock] = useState(true);
   const [dbStatus, setDbStatus] = useState<any>({
@@ -122,6 +151,12 @@ export default function ResearchManagementDashboard() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isPublicationModalOpen, setIsPublicationModalOpen] = useState(false);
   const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignForm, setAssignForm] = useState({
+    projectId: '',
+    evaluatorId: '',
+    evaluatorType: 'INTERNAL',
+  });
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -260,11 +295,12 @@ export default function ResearchManagementDashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [resUsers, resProjects, resPubs, resConsults, resStatus] = await Promise.all([
+      const [resUsers, resProjects, resPubs, resConsults, resEvaluations, resStatus] = await Promise.all([
         fetch('/api/users?includeDeleted=true').then((res) => res.json()),
         fetch('/api/projects?includeDeleted=true').then((res) => res.json()),
         fetch('/api/publications?includeDeleted=true').then((res) => res.json()),
         fetch('/api/consultations?includeDeleted=true').then((res) => res.json()),
+        fetch('/api/evaluations?includeDeleted=true').then((res) => res.json()).catch(() => []),
         fetch('/api/db-status').then((res) => res.json()).catch((err) => ({
           status: 'error',
           isMock: true,
@@ -277,6 +313,7 @@ export default function ResearchManagementDashboard() {
       if (Array.isArray(resProjects)) setProjects(resProjects);
       if (Array.isArray(resPubs)) setPublications(resPubs);
       if (Array.isArray(resConsults)) setConsultations(resConsults);
+      if (Array.isArray(resEvaluations)) setEvaluations(resEvaluations);
       if (resStatus) {
         setIsDbMock(resStatus.isMock);
         setDbStatus(resStatus);
@@ -444,6 +481,43 @@ export default function ResearchManagementDashboard() {
         fetchData();
       } catch (e) {
         console.error(e);
+      }
+    }
+  };
+
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/evaluations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assignForm)
+      });
+      if (res.ok) {
+        setIsAssignModalOpen(false);
+        setAssignForm({
+          projectId: '',
+          evaluatorId: '',
+          evaluatorType: 'INTERNAL',
+        });
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'แต่งตั้งผู้ทรงคุณวุฒิไม่สำเร็จ');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    }
+  };
+
+  const handleDeleteEvaluation = async (id: string) => {
+    if (confirm('คุณต้องการถอนรายชื่อผู้ทรงคุณวุฒิท่านนี้ออกจากโครงการวิจัยนี้ใช่หรือไม่?')) {
+      try {
+        await fetch(`/api/evaluations/${id}`, { method: 'DELETE' });
+        fetchData();
+      } catch (err) {
+        console.error(err);
       }
     }
   };
@@ -1253,6 +1327,7 @@ export default function ResearchManagementDashboard() {
                                     r === 'RESEARCHER' ? 'bg-[#fdf6e2] text-[#b45309] border border-[#fbe3b5]' :
                                     r === 'STAFF' ? 'bg-emerald-950 text-emerald-400 border border-emerald-900' :
                                     r === 'EXECUTIVE' ? 'bg-amber-950 text-amber-400 border border-amber-900' :
+                                    r === 'EVALUATOR' ? 'bg-cyan-950 text-cyan-400 border border-cyan-900' :
                                     'bg-slate-900 text-slate-400 border border-slate-700'
                                   }`}>
                                     {r}
@@ -1501,6 +1576,119 @@ export default function ResearchManagementDashboard() {
                             style={{ width: `${Math.min((p.budgetSpent / (p.budgetInitial || 1)) * 100, 100)}%` }}
                           ></div>
                         </div>
+                      </div>
+
+                      {/* Peer Evaluation Module Section */}
+                      <div className="mt-6 pt-5 border-t border-[#ebdccf] space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-[#3c2f25] uppercase tracking-wide flex items-center gap-1.5 font-serif">
+                            <span>🔍 การประเมินโดยผู้ทรงคุณวุฒิ (Peer Evaluation)</span>
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAssignForm({
+                                projectId: p.id,
+                                evaluatorId: '',
+                                evaluatorType: 'INTERNAL',
+                              });
+                              setIsAssignModalOpen(true);
+                            }}
+                            className="bg-[#ebdccf] hover:bg-[#d97706]/20 text-[#3c2f25] font-bold text-[10px] px-2.5 py-1.5 rounded-lg active:scale-95 transition-all shadow-sm"
+                          >
+                            + แต่งตั้งผู้ทรงคุณวุฒิประเมิน
+                          </button>
+                        </div>
+
+                        {/* List of assigned evaluations */}
+                        {(() => {
+                          const projectEvals = evaluations.filter(e => e.projectId === p.id && !e.isDeleted);
+                          const submittedEvals = projectEvals.filter(e => e.status === 'SUBMITTED');
+                          const avgScore = submittedEvals.length > 0
+                            ? Math.round(submittedEvals.reduce((acc, curr) => acc + (curr.scoreOverallQuality || 0), 0) / submittedEvals.length)
+                            : null;
+
+                          return (
+                            <div className="space-y-3">
+                              {/* Average Score Badge */}
+                              {avgScore !== null && (
+                                <div className="flex items-center gap-2 bg-[#fdf6e2] border border-[#fbe3b5] p-3 rounded-xl text-xs text-[#b45309]">
+                                  <span className="font-extrabold text-[#d97706] text-sm">★ {avgScore} / 100</span>
+                                  <span className="font-bold">คะแนนเฉลี่ยคุณภาพภาพรวม ({submittedEvals.length} ท่าน)</span>
+                                </div>
+                              )}
+
+                              {projectEvals.length === 0 ? (
+                                <p className="text-[11px] text-[#8a786c] italic">ยังไม่มีการแต่งตั้งผู้ทรงคุณวุฒิประเมินโครงการวิจัยนี้</p>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {projectEvals.map(ev => (
+                                    <div key={ev.id} className="bg-white border border-[#ebdccf]/60 p-3 rounded-xl space-y-2 text-[11px]">
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-[#4c3c31]">{ev.evaluator?.name || `ID: ${ev.evaluatorId.slice(0, 8)}`}</span>
+                                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                          ev.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                        }`}>
+                                          {ev.status}
+                                        </span>
+                                      </div>
+                                      
+                                      <div className="text-[10px] text-[#7a685c] space-y-1">
+                                        <p>ประเภท: {ev.evaluatorType === 'INTERNAL' ? 'ภายในคณะแพทย์' : 'ภายนอกมหาวิทยาลัย'}</p>
+                                        {ev.status === 'SUBMITTED' && (
+                                          <>
+                                            <p className="font-bold text-[#3c2f25]">คะแนนข้อ 5 (คุณภาพโดยรวม): <span className="text-[#d97706] font-extrabold">{ev.scoreOverallQuality} / 100</span></p>
+                                            
+                                            {/* Qualitative Feedbacks */}
+                                            <div className="bg-[#f9f5ee] p-2 rounded-lg mt-2 text-[10px] text-[#3c2f25] space-y-1">
+                                              <p><strong>1. กระบวนการวิจัย:</strong> {ev.feedbackResearchProcess || '-'}</p>
+                                              <p><strong>2. ความแปลกใหม่:</strong> {ev.feedbackOriginality || '-'}</p>
+                                              <p><strong>3. ผลผลิตที่คาดหวัง:</strong> {ev.feedbackExpectedOutput || '-'}</p>
+                                              <p><strong>4. ความเหมาะสมงบประมาณ:</strong> {ev.feedbackBudgetAppropriate || '-'}</p>
+                                            </div>
+
+                                            {/* Bank Accounts details */}
+                                            <div className="border-t border-[#ebdccf]/50 pt-2 mt-2 space-y-1 text-[10px]">
+                                              <p className="font-bold text-[#4c3c31]">💰 บัญชีผู้ทรงคุณวุฒิ:</p>
+                                              <p>ชื่อบัญชี: {ev.bankAccountName || '-'}</p>
+                                              <p>ธนาคาร: {ev.bankName} (สาขา: {ev.bankBranch})</p>
+                                              <p>เลขที่บัญชี: {ev.bankAccountNumber}</p>
+                                              {ev.bankBookAttachmentData && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const win = window.open();
+                                                    if (win) {
+                                                      win.document.title = ev.bankBookAttachmentName || 'สมุดบัญชีผู้ประเมิน';
+                                                      win.document.write(`<img src="${ev.bankBookAttachmentData}" style="max-width:100%; height:auto; display:block; margin:auto;" />`);
+                                                    }
+                                                  }}
+                                                  className="text-[#d97706] hover:underline font-bold mt-1 inline-block"
+                                                >
+                                                  📎 เปิดดูหน้าสมุดบัญชี
+                                                </button>
+                                              )}
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+
+                                      <div className="flex justify-end pt-1.5 border-t border-[#ebdccf]/30">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteEvaluation(ev.id)}
+                                          className="text-rose-500 hover:text-rose-700 font-semibold"
+                                        >
+                                          ถอนผู้ประเมิน
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -1836,7 +2024,7 @@ export default function ResearchManagementDashboard() {
               <div>
                 <label className="text-xs font-semibold text-[#7a685c] block mb-2.5">บทบาทและสิทธิ์ระบบ (เลือกได้มากกว่า 1)</label>
                 <div className="space-y-2 bg-[#f9f5ee] border border-[#ebdccf] rounded-xl p-3.5">
-                  {(['RESEARCHER', 'STAFF', 'EXECUTIVE', 'STAFF_CEU'] as UserRole[]).map((r) => {
+                  {(['RESEARCHER', 'STAFF', 'EXECUTIVE', 'STAFF_CEU', 'EVALUATOR'] as UserRole[]).map((r) => {
                     const isChecked = userForm.rolesList.includes(r);
                     return (
                       <label key={r} className="flex items-center gap-3 text-xs text-[#3c2f25] font-semibold cursor-pointer">
@@ -2226,6 +2414,69 @@ export default function ResearchManagementDashboard() {
                   className="px-4.5 py-2.5 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] text-xs font-semibold rounded-xl shadow-lg"
                 >
                   ยืนยันนัดหมายคิว
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Assign Evaluator Modal */}
+      {isAssignModalOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
+            <h3 className="text-lg font-bold text-[#3c2f25] mb-6 font-serif">
+              แต่งตั้งผู้ทรงคุณวุฒิประเมินโครงการวิจัย
+            </h3>
+            <form onSubmit={handleAssignSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[#7a685c] block mb-2">เลือกผู้ประเมิน (Evaluator)</label>
+                <select
+                  required
+                  value={assignForm.evaluatorId}
+                  onChange={(e) => setAssignForm({ ...assignForm, evaluatorId: e.target.value })}
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
+                >
+                  <option value="" disabled>-- กรุณาเลือกผู้ประเมิน --</option>
+                  {users
+                    .filter((u) => u.role.split(',').includes('EVALUATOR') && !u.isDeleted)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.email})
+                      </option>
+                    ))}
+                </select>
+                {users.filter((u) => u.role.split(',').includes('EVALUATOR') && !u.isDeleted).length === 0 && (
+                  <p className="text-[10px] text-rose-500 font-semibold mt-1">
+                    ⚠️ ไม่มีผู้ใช้ที่มีบทบาทเป็น EVALUATOR ในระบบ กรุณาเพิ่มผู้ใช้หรือเปลี่ยนบทบาทผู้ใช้ก่อน
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#7a685c] block mb-2">ประเภทผู้ประเมิน</label>
+                <select
+                  value={assignForm.evaluatorType}
+                  onChange={(e) => setAssignForm({ ...assignForm, evaluatorType: e.target.value })}
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
+                >
+                  <option value="INTERNAL">ภายในคณะแพทยศาสตร์ (Internal)</option>
+                  <option value="EXTERNAL">ภายนอกมหาวิทยาลัย (External)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-900">
+                <button
+                  type="button"
+                  onClick={() => setIsAssignModalOpen(false)}
+                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#f9f5ee]"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-4.5 py-2.5 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] text-xs font-semibold rounded-xl shadow-lg"
+                >
+                  แต่งตั้งผู้ประเมิน
                 </button>
               </div>
             </form>

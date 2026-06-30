@@ -4,7 +4,7 @@
       "id": "user-1",
       "name": "ศ.ดร. สมเกียรติ รักเรียน (นักวิจัย)",
       "email": "somkiat.r@iram.edu",
-      "role": "RESEARCHER",
+      "role": "RESEARCHER,EVALUATOR",
       "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
@@ -13,7 +13,7 @@
       "id": "user-2",
       "name": "ดร. วิภา จิตวิทยา (นักวิจัย)",
       "email": "wipa.j@iram.edu",
-      "role": "RESEARCHER",
+      "role": "RESEARCHER,EVALUATOR",
       "isDeleted": false,
       "createdAt": "2026-06-02T09:53:35.714Z",
       "updatedAt": "2026-06-02T09:53:35.714Z"
@@ -953,6 +953,22 @@
       "isDeleted": false,
       "createdAt": "2026-06-28T07:53:30.000Z",
       "updatedAt": "2026-06-28T07:53:30.000Z"
+    },
+    {
+      "id": "evaluator-1",
+      "name": "ศ.ดร. นันทกร ประเมินดี (ผู้ทรงคุณวุฒิภายนอก)",
+      "email": "nantakorn.p@gmail.com",
+      "role": "EVALUATOR",
+      "createdAt": "2026-06-30T10:00:00.000Z",
+      "updatedAt": "2026-06-30T10:00:00.000Z"
+    },
+    {
+      "id": "evaluator-2",
+      "name": "รศ.ดร. พรเทพ พิเคราะห์ (ผู้ทรงคุณวุฒิภายใน)",
+      "email": "pornthep.p@nu.ac.th",
+      "role": "EVALUATOR",
+      "createdAt": "2026-06-30T10:00:00.000Z",
+      "updatedAt": "2026-06-30T10:00:00.000Z"
     }
   ],
   "projects": [

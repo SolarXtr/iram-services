@@ -11,7 +11,7 @@ export type Permission =
   | 'MANAGE_USERS'
   | 'VIEW_DB_EXPLORER';
 
-export type UserRole = 'RESEARCHER' | 'STAFF' | 'EXECUTIVE' | 'STAFF_CEU';
+export type UserRole = 'RESEARCHER' | 'STAFF' | 'EXECUTIVE' | 'STAFF_CEU' | 'EVALUATOR';
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   RESEARCHER: [
@@ -40,6 +40,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'CANCEL_OWN_CONSULT',
     'MANAGE_CEU_SCHEDULE',
   ],
+  EVALUATOR: [
+    'EDIT_OWN_RESEARCH'
+  ]
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -47,6 +50,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   STAFF: 'เจ้าหน้าที่ (STAFF)',
   EXECUTIVE: 'ผู้บริหาร (EXECUTIVE)',
   STAFF_CEU: 'เจ้าหน้าที่ CEU (STAFF_CEU)',
+  EVALUATOR: 'ผู้ทรงคุณวุฒิประเมิน (EVALUATOR)',
 };
 
 /**

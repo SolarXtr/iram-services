@@ -106,6 +106,32 @@ export const ensureMigrations = async () => {
   try {
     await dbQuery('ALTER TABLE "irPresentation" ADD COLUMN "attachmentData" TEXT');
   } catch (e) {}
+  try {
+    await dbQuery(`
+      CREATE TABLE IF NOT EXISTS "irProposalEvaluation" (
+        "id" TEXT PRIMARY KEY,
+        "projectId" TEXT NOT NULL,
+        "evaluatorId" TEXT NOT NULL,
+        "evaluatorType" TEXT,
+        "feedbackResearchProcess" TEXT,
+        "feedbackOriginality" TEXT,
+        "feedbackExpectedOutput" TEXT,
+        "feedbackBudgetAppropriate" TEXT,
+        "scoreOverallQuality" INTEGER,
+        "bankAccountName" TEXT,
+        "bankName" TEXT,
+        "bankBranch" TEXT,
+        "bankAccountNumber" TEXT,
+        "bankBookAttachmentName" TEXT,
+        "bankBookAttachmentData" TEXT,
+        "status" TEXT DEFAULT 'DRAFT',
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } catch (e) {
+    console.error("Migration error creating irProposalEvaluation:", e);
+  }
   migrated = true;
 };
 
@@ -804,6 +830,173 @@ const realDbHandlers = {
       const res = await dbQuery('UPDATE "irConsultation" SET "isDeleted" = 1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *', [id]);
       await writeRealAuditLog('irConsultation', id, 'DELETE', current, null, performedBy);
       return res.rows[0];
+    }
+  },
+  evaluations: {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const includeDeleted = options?.includeDeleted ?? false;
+      const sql = `
+        SELECT 
+          e.*,
+          p.title as "projectTitle", p.status as "projectStatus",
+          u.name as "evaluatorName", u.email as "evaluatorEmail", u.role as "evaluatorRole"
+        FROM "irProposalEvaluation" e
+        LEFT JOIN "irResearchProject" p ON e."projectId" = p.id
+        LEFT JOIN "irUser" u ON e."evaluatorId" = u.id
+        WHERE ${includeDeleted ? '1=1' : '(e."isDeleted" = 0 OR e."isDeleted" IS NULL)'}
+        ORDER BY e."createdAt" DESC
+      `;
+      const res = await dbQuery(sql);
+      return res.rows.map((row: any) => ({
+        id: row.id,
+        projectId: row.projectId,
+        evaluatorId: row.evaluatorId,
+        evaluatorType: row.evaluatorType,
+        feedbackResearchProcess: row.feedbackResearchProcess,
+        feedbackOriginality: row.feedbackOriginality,
+        feedbackExpectedOutput: row.feedbackExpectedOutput,
+        feedbackBudgetAppropriate: row.feedbackBudgetAppropriate,
+        scoreOverallQuality: row.scoreOverallQuality,
+        bankAccountName: row.bankAccountName,
+        bankName: row.bankName,
+        bankBranch: row.bankBranch,
+        bankAccountNumber: row.bankAccountNumber,
+        bankBookAttachmentName: row.bankBookAttachmentName,
+        bankBookAttachmentData: row.bankBookAttachmentData,
+        status: row.status,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        createdAt: toIsoString(row.createdAt),
+        updatedAt: toIsoString(row.updatedAt),
+        project: row.projectId ? {
+          id: row.projectId,
+          title: row.projectTitle,
+          status: row.projectStatus
+        } : null,
+        evaluator: row.evaluatorId ? mapUserRoles({
+          id: row.evaluatorId,
+          name: row.evaluatorName,
+          email: row.evaluatorEmail,
+          role: row.evaluatorRole
+        }) : null
+      }));
+    },
+    findUnique: async (id: string) => {
+      const sql = `
+        SELECT 
+          e.*,
+          p.title as "projectTitle", p.status as "projectStatus",
+          u.name as "evaluatorName", u.email as "evaluatorEmail", u.role as "evaluatorRole"
+        FROM "irProposalEvaluation" e
+        LEFT JOIN "irResearchProject" p ON e."projectId" = p.id
+        LEFT JOIN "irUser" u ON e."evaluatorId" = u.id
+        WHERE e.id = $1
+      `;
+      const res = await dbQuery(sql, [id]);
+      const row = res.rows[0];
+      if (!row) return null;
+      return {
+        id: row.id,
+        projectId: row.projectId,
+        evaluatorId: row.evaluatorId,
+        evaluatorType: row.evaluatorType,
+        feedbackResearchProcess: row.feedbackResearchProcess,
+        feedbackOriginality: row.feedbackOriginality,
+        feedbackExpectedOutput: row.feedbackExpectedOutput,
+        feedbackBudgetAppropriate: row.feedbackBudgetAppropriate,
+        scoreOverallQuality: row.scoreOverallQuality,
+        bankAccountName: row.bankAccountName,
+        bankName: row.bankName,
+        bankBranch: row.bankBranch,
+        bankAccountNumber: row.bankAccountNumber,
+        bankBookAttachmentName: row.bankBookAttachmentName,
+        bankBookAttachmentData: row.bankBookAttachmentData,
+        status: row.status,
+        isDeleted: row.isDeleted === 1 || row.isDeleted === true || row.isDeleted === '1',
+        createdAt: toIsoString(row.createdAt),
+        updatedAt: toIsoString(row.updatedAt),
+        project: row.projectId ? {
+          id: row.projectId,
+          title: row.projectTitle,
+          status: row.projectStatus
+        } : null,
+        evaluator: row.evaluatorId ? mapUserRoles({
+          id: row.evaluatorId,
+          name: row.evaluatorName,
+          email: row.evaluatorEmail,
+          role: row.evaluatorRole
+        }) : null
+      };
+    },
+    create: async (data: any, performedBy?: string | null) => {
+      const id = data.id || crypto.randomUUID();
+      const sql = `
+        INSERT INTO "irProposalEvaluation" (
+          id, "projectId", "evaluatorId", "evaluatorType",
+          "feedbackResearchProcess", "feedbackOriginality", "feedbackExpectedOutput", "feedbackBudgetAppropriate",
+          "scoreOverallQuality", "bankAccountName", "bankName", "bankBranch", "bankAccountNumber",
+          "bankBookAttachmentName", "bankBookAttachmentData", "status", "isDeleted", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING id
+      `;
+      const res = await dbQuery(sql, [
+        id, data.projectId, data.evaluatorId, data.evaluatorType || 'INTERNAL',
+        data.feedbackResearchProcess || null, data.feedbackOriginality || null, data.feedbackExpectedOutput || null, data.feedbackBudgetAppropriate || null,
+        data.scoreOverallQuality !== undefined ? Number(data.scoreOverallQuality) : null,
+        data.bankAccountName || null, data.bankName || null, data.bankBranch || null, data.bankAccountNumber || null,
+        data.bankBookAttachmentName || null, data.bankBookAttachmentData || null, data.status || 'DRAFT'
+      ]);
+      const result = await realDbHandlers.evaluations.findUnique(res.rows[0].id);
+      await writeRealAuditLog('irProposalEvaluation', id, 'CREATE', null, result, performedBy);
+      return result;
+    },
+    update: async (id: string, data: any, performedBy?: string | null) => {
+      const currentRes = await dbQuery('SELECT * FROM "irProposalEvaluation" WHERE id = $1', [id]);
+      const current = currentRes.rows[0];
+      if (!current) throw new Error('Evaluation not found');
+
+      const projectId = data.projectId !== undefined ? data.projectId : current.projectId;
+      const evaluatorId = data.evaluatorId !== undefined ? data.evaluatorId : current.evaluatorId;
+      const evaluatorType = data.evaluatorType !== undefined ? data.evaluatorType : current.evaluatorType;
+      const feedbackResearchProcess = data.feedbackResearchProcess !== undefined ? data.feedbackResearchProcess : current.feedbackResearchProcess;
+      const feedbackOriginality = data.feedbackOriginality !== undefined ? data.feedbackOriginality : current.feedbackOriginality;
+      const feedbackExpectedOutput = data.feedbackExpectedOutput !== undefined ? data.feedbackExpectedOutput : current.feedbackExpectedOutput;
+      const feedbackBudgetAppropriate = data.feedbackBudgetAppropriate !== undefined ? data.feedbackBudgetAppropriate : current.feedbackBudgetAppropriate;
+      const scoreOverallQuality = data.scoreOverallQuality !== undefined ? (data.scoreOverallQuality !== null ? Number(data.scoreOverallQuality) : null) : current.scoreOverallQuality;
+      const bankAccountName = data.bankAccountName !== undefined ? data.bankAccountName : current.bankAccountName;
+      const bankName = data.bankName !== undefined ? data.bankName : current.bankName;
+      const bankBranch = data.bankBranch !== undefined ? data.bankBranch : current.bankBranch;
+      const bankAccountNumber = data.bankAccountNumber !== undefined ? data.bankAccountNumber : current.bankAccountNumber;
+      const bankBookAttachmentName = data.bankBookAttachmentName !== undefined ? data.bankBookAttachmentName : current.bankBookAttachmentName;
+      const bankBookAttachmentData = data.bankBookAttachmentData !== undefined ? data.bankBookAttachmentData : current.bankBookAttachmentData;
+      const status = data.status !== undefined ? data.status : current.status;
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
+
+      await dbQuery(`
+        UPDATE "irProposalEvaluation" SET
+          "projectId" = $1, "evaluatorId" = $2, "evaluatorType" = $3,
+          "feedbackResearchProcess" = $4, "feedbackOriginality" = $5, "feedbackExpectedOutput" = $6, "feedbackBudgetAppropriate" = $7,
+          "scoreOverallQuality" = $8, "bankAccountName" = $9, "bankName" = $10, "bankBranch" = $11, "bankAccountNumber" = $12,
+          "bankBookAttachmentName" = $13, "bankBookAttachmentData" = $14, "status" = $15, "isDeleted" = $16, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = $17
+      `, [
+        projectId, evaluatorId, evaluatorType,
+        feedbackResearchProcess, feedbackOriginality, feedbackExpectedOutput, feedbackBudgetAppropriate,
+        scoreOverallQuality, bankAccountName, bankName, bankBranch, bankAccountNumber,
+        bankBookAttachmentName, bankBookAttachmentData, status, isDeleted, id
+      ]);
+      const result = await realDbHandlers.evaluations.findUnique(id);
+      await writeRealAuditLog('irProposalEvaluation', id, 'UPDATE', current, result, performedBy);
+      return result;
+    },
+    delete: async (id: string, performedBy?: string | null) => {
+      const currentRes = await dbQuery('SELECT * FROM "irProposalEvaluation" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
+      const current = currentRes.rows[0];
+      if (!current) return null;
+
+      await dbQuery('UPDATE "irProposalEvaluation" SET "isDeleted" = 1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+      await writeRealAuditLog('irProposalEvaluation', id, 'DELETE', current, null, performedBy);
+      return current;
     }
   },
   auditLogs: {

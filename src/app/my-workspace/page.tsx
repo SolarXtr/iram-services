@@ -88,9 +88,33 @@ interface Consultation {
   requesterId: string;
 }
 
+interface Evaluation {
+  id: string;
+  projectId: string;
+  evaluatorId: string;
+  evaluatorType?: string | null;
+  feedbackResearchProcess?: string | null;
+  feedbackOriginality?: string | null;
+  feedbackExpectedOutput?: string | null;
+  feedbackBudgetAppropriate?: string | null;
+  scoreOverallQuality?: number | null;
+  bankAccountName?: string | null;
+  bankName?: string | null;
+  bankBranch?: string | null;
+  bankAccountNumber?: string | null;
+  bankBookAttachmentName?: string | null;
+  bankBookAttachmentData?: string | null;
+  status: 'DRAFT' | 'SUBMITTED';
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  project?: Project | null;
+  evaluator?: UserType | null;
+}
+
 export default function ResearcherWorkspace() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'projects' | 'publications' | 'consultations' | 'presentations' | 'profile'>('projects');
+  const [activeTab, setActiveTab] = useState<'projects' | 'publications' | 'consultations' | 'presentations' | 'profile' | 'evaluations'>('projects');
   
   // Selection of researcher to simulate workspace
   const [selectedResearcherId, setSelectedResearcherId] = useState<string>('');
@@ -101,6 +125,7 @@ export default function ResearcherWorkspace() {
   const [publications, setPublications] = useState<Publication[]>([]);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Action / Toast Status State
@@ -111,12 +136,28 @@ export default function ResearcherWorkspace() {
   const [editingPublication, setEditingPublication] = useState<Publication | null>(null);
   const [editingConsultation, setEditingConsultation] = useState<Consultation | null>(null);
   const [editingPresentation, setEditingPresentation] = useState<Presentation | null>(null);
+  const [editingEvaluation, setEditingEvaluation] = useState<Evaluation | null>(null);
 
   // Modal States
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isPublicationModalOpen, setIsPublicationModalOpen] = useState(false);
   const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
   const [isPresentationModalOpen, setIsPresentationModalOpen] = useState(false);
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  
+  const [evaluationForm, setEvaluationForm] = useState({
+    feedbackResearchProcess: '',
+    feedbackOriginality: '',
+    feedbackExpectedOutput: '',
+    feedbackBudgetAppropriate: '',
+    scoreOverallQuality: 75,
+    bankAccountName: '',
+    bankName: '',
+    bankBranch: '',
+    bankAccountNumber: '',
+    bankBookAttachmentName: '',
+    bankBookAttachmentData: '',
+  });
 
   const [projectForm, setProjectForm] = useState({
     title: '',
@@ -209,18 +250,19 @@ export default function ResearcherWorkspace() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [resUsers, resProj, resPub, resPres, resConsult] = await Promise.all([
+      const [resUsers, resProj, resPub, resPres, resConsult, resEval] = await Promise.all([
         fetch('/api/users').then(r => r.json()),
         fetch('/api/projects').then(r => r.json()),
         fetch('/api/publications').then(r => r.json()),
         fetch('/api/presentations').then(r => r.json()),
-        fetch('/api/consultations').then(r => r.json())
+        fetch('/api/consultations').then(r => r.json()),
+        fetch('/api/evaluations').then(r => r.json()).catch(() => [])
       ]);
 
       if (Array.isArray(resUsers)) {
         setAllUsers(resUsers);
         // Find first researcher and select their ID by default
-        const firstResearcher = resUsers.find(u => u.role.split(',').includes('RESEARCHER'));
+        const firstResearcher = resUsers.find(u => u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('EVALUATOR'));
         if (firstResearcher && !selectedResearcherId) {
           setSelectedResearcherId(firstResearcher.id);
         }
@@ -229,6 +271,7 @@ export default function ResearcherWorkspace() {
       if (Array.isArray(resPub)) setPublications(resPub);
       if (Array.isArray(resPres)) setPresentations(resPres);
       if (Array.isArray(resConsult)) setConsultations(resConsult);
+      if (Array.isArray(resEval)) setEvaluations(resEval);
     } catch (e) {
       console.error(e);
     } finally {
@@ -384,6 +427,53 @@ export default function ResearcherWorkspace() {
         'ลบประวัตินำเสนอผลงานสำเร็จแล้ว!'
       );
     }
+  };
+
+  const handleEditEvaluation = (ev: Evaluation) => {
+    setEditingEvaluation(ev);
+    setEvaluationForm({
+      feedbackResearchProcess: ev.feedbackResearchProcess || '',
+      feedbackOriginality: ev.feedbackOriginality || '',
+      feedbackExpectedOutput: ev.feedbackExpectedOutput || '',
+      feedbackBudgetAppropriate: ev.feedbackBudgetAppropriate || '',
+      scoreOverallQuality: ev.scoreOverallQuality || 75,
+      bankAccountName: ev.bankAccountName || '',
+      bankName: ev.bankName || '',
+      bankBranch: ev.bankBranch || '',
+      bankAccountNumber: ev.bankAccountNumber || '',
+      bankBookAttachmentName: ev.bankBookAttachmentName || '',
+      bankBookAttachmentData: ev.bankBookAttachmentData || '',
+    });
+    setIsEvaluationModalOpen(true);
+  };
+
+  const handleEvaluationSubmit = async (e: React.FormEvent, isDraft = false) => {
+    e.preventDefault();
+    if (!editingEvaluation) return;
+    
+    if (!isDraft) {
+      if (!evaluationForm.bankAccountName || !evaluationForm.bankName || !evaluationForm.bankAccountNumber) {
+        alert('กรุณากรอกข้อมูลบัญชีธนาคารให้ครบถ้วนเพื่อเบิกจ่ายค่าตอบแทนผู้ทรงคุณวุฒิ');
+        return;
+      }
+    }
+
+    const payload = {
+      ...evaluationForm,
+      status: isDraft ? 'DRAFT' : 'SUBMITTED',
+    };
+
+    await runAction(
+      isDraft ? 'กำลังบันทึกฉบับร่าง...' : 'กำลังบันทึกส่งผลประเมิน...',
+      () => fetch('/api/evaluations/' + editingEvaluation.id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }),
+      isDraft ? 'บันทึกฉบับร่างสำเร็จแล้ว!' : 'ส่งผลการประเมินโครงการวิจัยสำเร็จแล้ว!'
+    );
+    setIsEvaluationModalOpen(false);
+    setEditingEvaluation(null);
   };
 
   // Unified Form Submissions
@@ -674,7 +764,7 @@ export default function ResearcherWorkspace() {
                   className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl pl-3 pr-8 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] cursor-pointer max-w-[150px]"
                 >
                   {allUsers
-                    .filter(u => (u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF')) && u.name.toLowerCase().includes(impersonateSearch.toLowerCase()))
+                    .filter(u => (u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF') || u.role.split(',').includes('EVALUATOR')) && u.name.toLowerCase().includes(impersonateSearch.toLowerCase()))
                     .map(u => (
                       <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                     ))
@@ -705,12 +795,13 @@ export default function ResearcherWorkspace() {
         {/* Tab Navigation */}
         <div className="flex border-b border-[#ebdccf] gap-2">
           {[
-            { id: 'projects', label: 'โครงการวิจัยของฉัน', icon: FileText },
-            { id: 'publications', label: 'การตีพิมพ์และขอรางวัล', icon: BookOpen },
-            { id: 'consultations', label: 'ตารางนัดหมายปรึกษา CEU', icon: Calendar },
-            { id: 'presentations', label: 'ประวัติการนำเสนอผลงาน', icon: PresIcon },
-            { id: 'profile', label: 'ตั้งค่าข้อมูลส่วนตัว', icon: User }
-          ].map(tab => (
+            { id: 'projects', label: 'โครงการวิจัยของฉัน', icon: FileText, show: true },
+            { id: 'publications', label: 'การตีพิมพ์และขอรางวัล', icon: BookOpen, show: true },
+            { id: 'consultations', label: 'ตารางนัดหมายปรึกษา CEU', icon: Calendar, show: true },
+            { id: 'presentations', label: 'ประวัติการนำเสนอผลงาน', icon: PresIcon, show: true },
+            { id: 'evaluations', label: 'การประเมินโครงการวิจัย (Evaluator)', icon: Award, show: selectedResearcherRoles.includes('EVALUATOR') },
+            { id: 'profile', label: 'ตั้งค่าข้อมูลส่วนตัว', icon: User, show: true }
+          ].filter(tab => tab.show).map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
@@ -1322,6 +1413,68 @@ export default function ResearcherWorkspace() {
             </div>
           </div>
         )}
+
+        {/* TAB 6: PEER EVALUATIONS (FOR EVALUATOR ROLE) */}
+        {activeTab === 'evaluations' && (
+          <div className="space-y-6">
+            <div className="mt-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-[#3c2f25] font-serif">การประเมินโครงการวิจัยที่ได้รับมอบหมาย</h2>
+                <p className="text-xs text-[#7a685c]">กรุณาพิจารณาและกรอกแบบประเมินให้คะแนนคุณภาพโครงการวิจัย รวมถึงข้อมูลบัญชีธนาคารเพื่อเบิกค่าตอบแทน</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              {evaluations.filter(e => e.evaluatorId === selectedResearcherId && !e.isDeleted).length === 0 ? (
+                <div className="text-center py-12 bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl text-[#7a685c]">
+                  คุณไม่ได้รับการมอบหมายให้ประเมินโครงการวิจัยในขณะนี้
+                </div>
+              ) : (
+                evaluations
+                  .filter(e => e.evaluatorId === selectedResearcherId && !e.isDeleted)
+                  .map((ev) => (
+                    <div key={ev.id} className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-md hover:shadow-lg transition-all flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              ev.status === 'SUBMITTED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                            }`}>
+                              {ev.status === 'SUBMITTED' ? 'ส่งประเมินแล้ว' : 'ฉบับร่าง (Draft)'}
+                            </span>
+                            <h3 className="text-base font-bold text-[#3c2f25] mt-3 leading-snug">
+                              {ev.project?.title || `โครงการ ID: ${ev.projectId}`}
+                            </h3>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => handleEditEvaluation(ev)}
+                            className="bg-[#d97706] hover:bg-[#c2410c] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow active:scale-95 shrink-0"
+                          >
+                            {ev.status === 'SUBMITTED' ? 'ดูรายละเอียดผลประเมิน' : 'เริ่มประเมิน / แก้ไขเกณฑ์'}
+                          </button>
+                        </div>
+
+                        {ev.status === 'SUBMITTED' && (
+                          <div className="mt-4 pt-4 border-t border-[#ebdccf]/50 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-[#7a685c]">
+                            <div>
+                              <p className="font-bold text-[#3c2f25]">ระดับคะแนนคุณภาพโดยรวม:</p>
+                              <p className="text-[#d97706] font-extrabold text-sm mt-1">{ev.scoreOverallQuality} / 100 คะแนน</p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-[#3c2f25]">ข้อมูลการรับเงินค่าตอบแทน:</p>
+                              <p className="mt-1 font-semibold">{ev.bankAccountName} ({ev.bankName} - {ev.bankAccountNumber})</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* -------------------- MODAL DIALOGS -------------------- */}
@@ -1904,6 +2057,217 @@ export default function ResearcherWorkspace() {
                 >
                   {editingPresentation ? 'บันทึกการแก้ไข' : 'บันทึกงานนำเสนอ'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Evaluation Create/Edit Form Modal */}
+      {isEvaluationModalOpen && editingEvaluation && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-2xl shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-[#3c2f25] mb-6 font-serif">
+              {editingEvaluation.status === 'SUBMITTED' ? 'ข้อมูลการประเมินโครงการวิจัย' : 'แบบประเมินคุณภาพข้อเสนอโครงการวิจัยที่เสนอขอทุนสนับสนุน'}
+            </h3>
+            
+            <div className="bg-[#f9f5ee] border border-[#ebdccf] p-4 rounded-2xl mb-6 text-xs text-[#3c2f25] space-y-1">
+              <p><strong>ชื่อโครงการวิจัย:</strong> {editingEvaluation.project?.title}</p>
+              <p><strong>สถานะผู้ประเมิน:</strong> {editingEvaluation.evaluatorType === 'INTERNAL' ? 'ภายในคณะแพทยศาสตร์' : 'ภายนอกมหาวิทยาลัย'}</p>
+            </div>
+
+            <form onSubmit={(e) => handleEvaluationSubmit(e, false)} className="space-y-5">
+              {/* Question 1 */}
+              <div>
+                <label className="text-xs font-bold text-[#7a685c] block mb-2">1. กระบวนการวิจัย (Scientific soundness & Valid methodology)</label>
+                <textarea
+                  disabled={editingEvaluation.status === 'SUBMITTED'}
+                  value={evaluationForm.feedbackResearchProcess}
+                  onChange={(e) => setEvaluationForm({ ...evaluationForm, feedbackResearchProcess: e.target.value })}
+                  placeholder="แสดงความคิดเห็นเกี่ยวกับความชัดเจน ที่มา หลักการเหตุผล คำถามวิจัย และรูปแบบระเบียบวิธีวิจัย..."
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] min-h-[70px]"
+                />
+              </div>
+
+              {/* Question 2 */}
+              <div>
+                <label className="text-xs font-bold text-[#7a685c] block mb-2">2. ผลงานสร้างองค์ความรู้ใหม่ (Originality / Gap of knowledge)</label>
+                <textarea
+                  disabled={editingEvaluation.status === 'SUBMITTED'}
+                  value={evaluationForm.feedbackOriginality}
+                  onChange={(e) => setEvaluationForm({ ...evaluationForm, feedbackOriginality: e.target.value })}
+                  placeholder="ผลงานที่ได้เป็นการสร้างองค์ความรู้ใหม่ หรือแสดงถึงช่องว่างทางความรู้ที่โครงการวิจัยสามารถเติมเต็มได้..."
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] min-h-[70px]"
+                />
+              </div>
+
+              {/* Question 3 */}
+              <div>
+                <label className="text-xs font-bold text-[#7a685c] block mb-2">3. ผลผลิตการวิจัยที่คาดว่าจะได้รับ (Expected Output / Publications)</label>
+                <textarea
+                  disabled={editingEvaluation.status === 'SUBMITTED'}
+                  value={evaluationForm.feedbackExpectedOutput}
+                  onChange={(e) => setEvaluationForm({ ...evaluationForm, feedbackExpectedOutput: e.target.value })}
+                  placeholder="ระบุโอกาสการตีพิมพ์ในระดับนานาชาติ หรือประโยชน์เชิงสิ่งประดิษฐ์ ดัดแปลง มีผลเชิงพาณิชย์ หรือแนวทางปฏิบัติใหม่..."
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] min-h-[70px]"
+                />
+              </div>
+
+              {/* Question 4 */}
+              <div>
+                <label className="text-xs font-bold text-[#7a685c] block mb-2">4. ความเหมาะสมในภาพรวมเกี่ยวกับการตั้งงบประมาณโครงการวิจัย</label>
+                <textarea
+                  disabled={editingEvaluation.status === 'SUBMITTED'}
+                  value={evaluationForm.feedbackBudgetAppropriate}
+                  onChange={(e) => setEvaluationForm({ ...evaluationForm, feedbackBudgetAppropriate: e.target.value })}
+                  placeholder="ความเหมาะสมของวงเงินงบประมาณสอดคล้องกับระเบียบวิธีวิจัยและแผนการดำเนินงานวิจัย..."
+                  className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] min-h-[70px]"
+                />
+              </div>
+
+              {/* Question 5 (ScoreScale Dropdown) */}
+              <div className="bg-[#fdf6e2] border border-[#fbe3b5] p-4.5 rounded-2xl">
+                <label className="text-xs font-extrabold text-[#b45309] block mb-2">5. คุณภาพของโครงการวิจัยในภาพรวม (Overall Quality Evaluation Score)</label>
+                <select
+                  disabled={editingEvaluation.status === 'SUBMITTED'}
+                  value={evaluationForm.scoreOverallQuality}
+                  onChange={(e) => setEvaluationForm({ ...evaluationForm, scoreOverallQuality: Number(e.target.value) })}
+                  className="w-full bg-white border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] font-bold focus:outline-none focus:ring-1 focus:ring-[#d97706]"
+                >
+                  <option value={25}>ควรปรับปรุงอย่างยิ่ง (25 คะแนน)</option>
+                  <option value={50}>พอใช้ และควรปรับปรุงบางส่วน (50 คะแนน)</option>
+                  <option value={75}>ดี (75 คะแนน)</option>
+                  <option value={100}>ดีมาก (100 คะแนน)</option>
+                </select>
+              </div>
+
+              {/* Remuneration Bank Accounts */}
+              <div className="border-t border-[#ebdccf] pt-5 space-y-4">
+                <h4 className="text-xs font-extrabold text-[#3c2f25] uppercase tracking-wide">💰 บันทึกข้อมูลบัญชีธนาคารสำหรับเบิกค่าตอบแทน</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">ชื่อเจ้าของบัญชี (จะต้องตรงกับชื่อผู้ทรงคุณวุฒิเท่านั้น)</label>
+                    <input
+                      type="text"
+                      disabled={editingEvaluation.status === 'SUBMITTED'}
+                      value={evaluationForm.bankAccountName}
+                      onChange={(e) => setEvaluationForm({ ...evaluationForm, bankAccountName: e.target.value })}
+                      placeholder="ระบุชื่อเจ้าของบัญชี"
+                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">ชื่อธนาคาร / สาขา</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        disabled={editingEvaluation.status === 'SUBMITTED'}
+                        value={evaluationForm.bankName}
+                        onChange={(e) => setEvaluationForm({ ...evaluationForm, bankName: e.target.value })}
+                        placeholder="ธนาคาร"
+                        className="w-1/2 bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-3 py-2.5 text-xs text-[#3c2f25]"
+                      />
+                      <input
+                        type="text"
+                        disabled={editingEvaluation.status === 'SUBMITTED'}
+                        value={evaluationForm.bankBranch}
+                        onChange={(e) => setEvaluationForm({ ...evaluationForm, bankBranch: e.target.value })}
+                        placeholder="สาขา"
+                        className="w-1/2 bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-3 py-2.5 text-xs text-[#3c2f25]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">เลขบัญชีเงินฝาก</label>
+                  <input
+                    type="text"
+                    disabled={editingEvaluation.status === 'SUBMITTED'}
+                    value={evaluationForm.bankAccountNumber}
+                    onChange={(e) => setEvaluationForm({ ...evaluationForm, bankAccountNumber: e.target.value })}
+                    placeholder="เลขที่บัญชีธนาคาร"
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-semibold text-[#7a685c] block">แนบภาพหรือเอกสารสำเนาหน้าสมุดบัญชี (ต้องรับรองสำเนาถูกต้อง)</label>
+                  {editingEvaluation.status !== 'SUBMITTED' && (
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => handleFileChange(e, (file) => setEvaluationForm({
+                        ...evaluationForm,
+                        bankBookAttachmentName: file.name,
+                        bankBookAttachmentData: file.data
+                      }))}
+                      className="block w-full text-xs text-[#7a685c] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#ebdccf] file:text-[#3c2f25] hover:file:bg-[#d97706]/20 cursor-pointer"
+                    />
+                  )}
+                  {evaluationForm.bankBookAttachmentName && (
+                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-xs text-emerald-800">
+                      <span>📎 {evaluationForm.bankBookAttachmentName}</span>
+                      {evaluationForm.bankBookAttachmentData && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const win = window.open();
+                            if (win) {
+                              win.document.title = evaluationForm.bankBookAttachmentName || 'สำเนาบัญชี';
+                              win.document.write(`<img src="${evaluationForm.bankBookAttachmentData}" style="max-width:100%; height:auto;" />`);
+                            }
+                          }}
+                          className="text-[#d97706] hover:underline font-bold ml-2 text-[10px]"
+                        >
+                          เปิดดู
+                        </button>
+                      )}
+                      {editingEvaluation.status !== 'SUBMITTED' && (
+                        <button
+                          type="button"
+                          onClick={() => setEvaluationForm({ ...evaluationForm, bankBookAttachmentName: '', bankBookAttachmentData: '' })}
+                          className="text-rose-500 hover:text-rose-700 ml-auto font-bold"
+                        >
+                          ลบออก
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit / Save Draft controls */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#ebdccf]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEvaluationModalOpen(false);
+                    setEditingEvaluation(null);
+                  }}
+                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#f9f5ee]"
+                >
+                  {editingEvaluation.status === 'SUBMITTED' ? 'ปิดหน้าต่าง' : 'ยกเลิก'}
+                </button>
+
+                {editingEvaluation.status !== 'SUBMITTED' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => handleEvaluationSubmit(e, true)}
+                      className="px-4.5 py-2.5 bg-[#f9f5ee] hover:bg-[#ebdccf] border border-[#ebdccf] text-[#3c2f25] text-xs font-semibold rounded-xl"
+                    >
+                      บันทึกฉบับร่าง
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg"
+                    >
+                      ส่งผลการประเมินอย่างเป็นทางการ
+                    </button>
+                  </>
+                )}
               </div>
             </form>
           </div>

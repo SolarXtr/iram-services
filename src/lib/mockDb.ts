@@ -81,6 +81,28 @@ export interface MockAuditLog {
   timestamp: string;
 }
 
+export interface MockProposalEvaluation {
+  id: string;
+  projectId: string;
+  evaluatorId: string;
+  evaluatorType?: string | null;
+  feedbackResearchProcess?: string | null;
+  feedbackOriginality?: string | null;
+  feedbackExpectedOutput?: string | null;
+  feedbackBudgetAppropriate?: string | null;
+  scoreOverallQuality?: number | null;
+  bankAccountName?: string | null;
+  bankName?: string | null;
+  bankBranch?: string | null;
+  bankAccountNumber?: string | null;
+  bankBookAttachmentName?: string | null;
+  bankBookAttachmentData?: string | null;
+  status: 'DRAFT' | 'SUBMITTED';
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface DBStructure {
   users: MockUser[];
   projects: MockProject[];
@@ -88,6 +110,7 @@ interface DBStructure {
   presentations: MockPresentation[];
   consultations: MockConsultation[];
   auditLogs: MockAuditLog[];
+  evaluations?: MockProposalEvaluation[];
 }
 
 import mockDbData from '../../mock-db.json';
@@ -98,6 +121,9 @@ const defaultData: DBStructure = mockDbData as any;
 let dbState: DBStructure = { ...defaultData };
 
 function readDb(): DBStructure {
+  if (!dbState.evaluations) {
+    dbState.evaluations = [];
+  }
   return dbState;
 }
 
@@ -491,6 +517,79 @@ export const mockDb = {
       logAction('irConsultation', id, 'DELETE', oldVal, null, performedBy);
       return oldVal;
     },
+  },
+  
+  // Evaluations CRUD
+  evaluations: {
+    findMany: async (options?: { includeDeleted?: boolean }) => {
+      const db = readDb();
+      const includeDeleted = options?.includeDeleted ?? false;
+      return (db.evaluations || [])
+        .filter((e) => includeDeleted || !e.isDeleted)
+        .map((e) => ({
+          ...e,
+          project: db.projects.find((p) => p.id === e.projectId) || null,
+          evaluator: mapUserRoles(db.users.find((u) => u.id === e.evaluatorId)) || null,
+        }));
+    },
+    findUnique: async (id: string) => {
+      const db = readDb();
+      const e = (db.evaluations || []).find((x) => x.id === id);
+      if (!e) return null;
+      return {
+        ...e,
+        project: db.projects.find((p) => p.id === e.projectId) || null,
+        evaluator: mapUserRoles(db.users.find((u) => u.id === e.evaluatorId)) || null,
+      };
+    },
+    create: async (data: Omit<MockProposalEvaluation, 'id' | 'createdAt' | 'updatedAt'>, performedBy?: string | null) => {
+      const db = readDb();
+      const newEval: MockProposalEvaluation = {
+        ...data,
+        id: 'eval-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        isDeleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (!db.evaluations) db.evaluations = [];
+      db.evaluations.push(newEval);
+      writeDb(db);
+      logAction('irProposalEvaluation', newEval.id, 'CREATE', null, newEval, performedBy);
+      return {
+        ...newEval,
+        project: db.projects.find((p) => p.id === newEval.projectId) || null,
+        evaluator: mapUserRoles(db.users.find((u) => u.id === newEval.evaluatorId)) || null,
+      };
+    },
+    update: async (id: string, data: Partial<Omit<MockProposalEvaluation, 'id' | 'createdAt' | 'updatedAt'>>, performedBy?: string | null) => {
+      const db = readDb();
+      const idx = (db.evaluations || []).findIndex((x) => x.id === id);
+      if (idx === -1) throw new Error('Evaluation not found');
+      const oldVal = { ...db.evaluations![idx] };
+      db.evaluations![idx] = {
+        ...db.evaluations![idx],
+        ...data,
+        updatedAt: new Date().toISOString(),
+      };
+      writeDb(db);
+      logAction('irProposalEvaluation', id, 'UPDATE', oldVal, db.evaluations![idx], performedBy);
+      return {
+        ...db.evaluations![idx],
+        project: db.projects.find((p) => p.id === db.evaluations![idx].projectId) || null,
+        evaluator: mapUserRoles(db.users.find((u) => u.id === db.evaluations![idx].evaluatorId)) || null,
+      };
+    },
+    delete: async (id: string, performedBy?: string | null) => {
+      const db = readDb();
+      const idx = (db.evaluations || []).findIndex((x) => x.id === id && !x.isDeleted);
+      if (idx === -1) throw new Error('Evaluation not found');
+      const oldVal = { ...db.evaluations![idx] };
+      db.evaluations![idx].isDeleted = true;
+      db.evaluations![idx].updatedAt = new Date().toISOString();
+      writeDb(db);
+      logAction('irProposalEvaluation', id, 'DELETE', oldVal, null, performedBy);
+      return oldVal;
+    }
   },
   
   // Audit Logs Read
