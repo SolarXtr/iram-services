@@ -1133,6 +1133,43 @@ export default function ResearcherWorkspace() {
         {/* TAB 4: PRESENTATIONS */}
         {activeTab === 'presentations' && (
           <div className="space-y-6">
+            {/* Visual Workflow Steps */}
+            <div className="bg-[#f9f5ee] border border-[#ebdccf] rounded-3xl p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-[#3c2f25] mb-4 flex items-center gap-2 font-serif">
+                <span className="flex items-center justify-center w-5 h-5 bg-[#d97706]/10 text-[#d97706] rounded-full text-xs">🗺️</span>
+                คู่มือขั้นตอนการไปนำเสนอผลงานวิจัยวิชาการ (Travel & Presentation Workflow)
+              </h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+                {[
+                  { step: 1, label: 'อนุมัติเข้าร่วม', desc: 'บันทึกข้อความขออนุมัติเข้าร่วมประชุมวิชาการ/นำเสนอผลงาน' },
+                  { step: 2, label: 'ขอทุนสนับสนุน', desc: 'บันทึกข้อความขออนุมัติทุนสนับสนุนการไปนำเสนอผลงาน' },
+                  { step: 3, label: 'บอร์ดวิจัยอนุมัติ', desc: 'การประชุมคณะกรรมการบริหารงานวิจัยเพื่ออนุมัติงบประมาณ' },
+                  { step: 4, label: 'ขออนุมัติไปราชการ', desc: 'บันทึกข้อความขออนุมัติไปราชการเพื่อนำเสนอผลงาน' },
+                  { step: 5, label: 'นำเสนอผลงาน', desc: 'เข้าร่วมประชุม/นำเสนอผลงาน ณ สถานที่จัดงาน' },
+                  { step: 6, label: 'รายงานผลไปราชการ', desc: 'ส่งรายงานผลการไปราชการหลังกลับจากการประชุม' },
+                  { step: 7, label: 'เบิกจ่าย REFUND', desc: 'บันทึกข้อความและส่งหลักฐานเพื่อขอรับเงินคืน (REFUND)' },
+                ].map((item, idx) => (
+                  <div key={item.step} className="bg-white border border-[#ebdccf]/60 hover:border-[#d97706]/40 p-3.5 rounded-2xl relative flex flex-col justify-between transition-all group hover:shadow-md">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="w-6 h-6 bg-[#d97706] text-white flex items-center justify-center rounded-full text-[10px] font-bold shadow-sm group-hover:scale-110 transition-transform">
+                          {item.step}
+                        </span>
+                        {idx < 6 && (
+                          <span className="hidden lg:block absolute -right-2 top-1/2 -translate-y-1/2 z-10 text-[#ebdccf] font-bold text-sm">
+                            →
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-bold text-[#3c2f25] text-[11px] mb-1 group-hover:text-[#d97706] transition-colors">{item.label}</p>
+                      <p className="text-[10px] text-[#7a685c] leading-relaxed font-medium">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between mt-6">
               <h2 className="text-lg font-bold text-[#3c2f25]">ประวัติทะเบียนงานนำเสนอวิจัยวิชาการ</h2>
               <button
