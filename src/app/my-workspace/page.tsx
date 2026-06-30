@@ -212,6 +212,7 @@ export default function ResearcherWorkspace() {
   });
 
   const [impersonateSearch, setImpersonateSearch] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const selectedResearcher = allUsers.find(u => u.id === selectedResearcherId);
 
@@ -755,35 +756,72 @@ export default function ResearcherWorkspace() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4 bg-[#f9f5ee] border border-[#ebdccf] px-4.5 py-3 rounded-2xl shadow-sm self-start md:self-auto">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative">
               <span className="text-xs font-bold text-[#7a685c] whitespace-nowrap">จำลองเข้าสู่ระบบเป็น:</span>
-              <input
-                type="text"
-                placeholder="ค้นหารายชื่อ..."
-                value={impersonateSearch}
-                onChange={(e) => setImpersonateSearch(e.target.value)}
-                className="bg-[#fdfcf9] border border-[#ebdccf] text-[11px] rounded-lg px-2.5 py-1 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] w-28 font-semibold"
-              />
               <div className="relative">
-                <select
-                  value={selectedResearcherId}
+                <input
+                  type="text"
+                  placeholder="🔍 พิมพ์ค้นหารายชื่อผู้ใช้งาน..."
+                  value={impersonateSearch}
                   onChange={(e) => {
-                    handleUserChange(e.target.value);
-                    setEditingProject(null);
-                    setEditingPublication(null);
-                    setEditingConsultation(null);
-                    setEditingPresentation(null);
+                    setImpersonateSearch(e.target.value);
+                    setIsDropdownOpen(true);
                   }}
-                  className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl pl-3 pr-8 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] cursor-pointer max-w-[150px]"
-                >
-                  {allUsers
-                    .filter(u => (u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF') || u.role.split(',').includes('EVALUATOR')) && u.name.toLowerCase().includes(impersonateSearch.toLowerCase()))
-                    .map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                    ))
-                  }
-                </select>
+                  onFocus={() => setIsDropdownOpen(true)}
+                  className="bg-[#fdfcf9] border border-[#ebdccf] text-xs rounded-xl px-3 py-2 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] w-52 font-semibold shadow-inner"
+                />
+                
+                {isDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
+                    <div className="absolute left-0 mt-1 w-72 bg-white border border-[#ebdccf] rounded-2xl shadow-2xl z-20 max-h-60 overflow-y-auto py-1.5 scrollbar-thin">
+                      {allUsers
+                        .filter(u => (u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF') || u.role.split(',').includes('EVALUATOR')) && (u.name.toLowerCase().includes(impersonateSearch.toLowerCase()) || (u.email && u.email.toLowerCase().includes(impersonateSearch.toLowerCase()))))
+                        .length === 0 ? (
+                          <div className="px-4 py-2 text-xs text-slate-400 italic">ไม่พบรายชื่อผู้ใช้งาน</div>
+                        ) : (
+                          allUsers
+                            .filter(u => (u.role.split(',').includes('RESEARCHER') || u.role.split(',').includes('STAFF') || u.role.split(',').includes('EVALUATOR')) && (u.name.toLowerCase().includes(impersonateSearch.toLowerCase()) || (u.email && u.email.toLowerCase().includes(impersonateSearch.toLowerCase()))))
+                            .map(u => {
+                              const isActive = u.id === selectedResearcherId;
+                              return (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() => {
+                                    handleUserChange(u.id);
+                                    setImpersonateSearch('');
+                                    setIsDropdownOpen(false);
+                                    setEditingProject(null);
+                                    setEditingPublication(null);
+                                    setEditingConsultation(null);
+                                    setEditingPresentation(null);
+                                  }}
+                                  className={`w-full text-left px-4 py-2 text-xs font-semibold flex flex-col gap-0.5 border-b border-slate-100/50 last:border-0 transition-colors ${
+                                    isActive
+                                      ? 'bg-[#d97706] text-[#fdfcf9]'
+                                      : 'text-[#3c2f25] hover:bg-[#f9f5ee]'
+                                  }`}
+                                >
+                                  <span>{u.name}</span>
+                                  <span className={`text-[9px] font-bold ${isActive ? 'text-amber-100' : 'text-[#7a685c]'}`}>
+                                    {u.role.split(',').map(r => (ROLE_LABELS as any)[r] || r).join(', ')}
+                                  </span>
+                                </button>
+                              );
+                            })
+                        )
+                      }
+                    </div>
+                  </>
+                )}
               </div>
+              
+              {selectedResearcher && (
+                <span className="text-[10px] bg-amber-100 border border-amber-200 text-[#b45309] px-2.5 py-1 rounded-lg font-extrabold max-w-[130px] truncate shadow-sm">
+                  🟢 {selectedResearcher.name}
+                </span>
+              )}
             </div>
 
             {selectedResearcherRoles.length > 1 && (
