@@ -102,7 +102,7 @@ export default function AboutProjectPage() {
             <span>กระบวนการทำงานแบบเป็นขั้นตอน (Development Timeline)</span>
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
             
             {/* Step 1 */}
             <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
@@ -159,6 +159,17 @@ export default function AboutProjectPage() {
               </p>
             </div>
 
+            {/* Step 6 */}
+            <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-[#d97706] flex items-center justify-center font-bold text-sm mb-4">
+                06
+              </div>
+              <h3 className="font-bold text-base">ระบบจัดเรียงชื่อวิเคราะห์ไทยและแผงควบคุมประเมิน (Name Parsing & Evaluations Panel)</h3>
+              <p className="text-xs text-[#7a685c] mt-2.5 leading-relaxed">
+                สร้างระบบสกัดแยกคำนำหน้า ยศวิชาการและชื่อจริง-นามสกุลภาษาไทยอัตโนมัติ จัดเรียงตามอักษร ก-ฮ และระบบรายงานผลประเมินของผู้ทรงคุณวุฒิ ค้นหา จัดเรียง แก้ไข และส่งออก CSV สำหรับเจ้าหน้าที่
+              </p>
+            </div>
+
           </div>
         </section>
 
@@ -183,7 +194,8 @@ export default function AboutProjectPage() {
                 <li><span className="font-bold text-[#3c2f25]">โครงการวิจัย:</span> ดูโครงการทั้งหมด ตรวจสอบงบประมาณ</li>
                 <li><span className="font-bold text-[#3c2f25]">บทความวิชาการ:</span> อนุมัติสิทธิ์เงินรางวัลการตีพิมพ์แยกตาม Quartile</li>
                 <li><span className="font-bold text-[#3c2f25]">การให้คำปรึกษา CEU:</span> ตรวจสอบและเปลี่ยนสถานะคิวรับนัดคำปรึกษา</li>
-                <li><span className="font-bold text-[#3c2f25]">บริหารข้อมูลผู้ใช้:</span> ทำ CRUD สร้าง/แก้ไข/ลบ รายชื่อผู้ใช้</li>
+                <li><span className="font-bold text-[#3c2f25]">ผลการประเมินโครงการ:</span> จัดการผลการประเมิน ตรวจคะแนน แก้ไขประวัติบัญชี และดึงออกข้อมูลเป็น CSV</li>
+                <li><span className="font-bold text-[#3c2f25]">บริหารข้อมูลผู้ใช้:</span> ทำ CRUD สร้าง/แก้ไข/ลบ และสลับสิทธิ์การกรอกข้อมูลแยกชื่อจริง-นามสกุล</li>
                 <li><span className="font-bold text-[#3c2f25]">DB Explorer / DB Status:</span> สำรวจตารางฐานข้อมูลและทดสอบความเร็วดีเลย์ของ D1 DB</li>
               </ul>
             </div>
@@ -389,6 +401,32 @@ export default function AboutProjectPage() {
               </div>
             </div>
 
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">ความยุ่งยากในการเรียงชื่อผู้ใช้ด้วยคำนำหน้าและระบบ Name Parser (Thai Name Parsing & Auto-migration)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> การจัดเรียงรายชื่อด้วยคำนำหน้าชื่อตัวย่อทางวิชาการที่ยาวและหลากหลาย (เช่น ศ.ดร.นพ., ผศ., ทพญ.) ทำให้เจ้าหน้าที่จัดกลุ่มหาข้อมูลผู้ใช้งานระบบได้ลำบาก
+                  <br /><strong>ทางแก้:</strong> ปรับปรุงโครงสร้างตารางข้อมูลเพื่อแยกฟิลด์ คำนำหน้า, ชื่อจริง, นามสกุล และสร้างสคริปต์ Thai Name Parser วิเคราะห์แยกข้อมูลเดิม 100 กว่าแถวอัตโนมัติ พร้อมอัปเดตหน้าจอแก้ไข/โปรไฟล์ให้มี 3 ช่องคีย์ข้อมูลแยกชัดเจน และรันการเรียงข้อมูลภาษาไทยแบบ ก-ฮ ตามชื่อจริง
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">ปัญหาภาษาไทยอ่านไม่ออกในการดาวน์โหลดตารางข้อมูลรายงาน (CSV Export Thai Character Encoding Bug)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> การส่งออกข้อมูลเป็น CSV จากหน้าเว็บโดยเขียนอักษรภาษาไทย เมื่อเปิดดูด้วยโปรแกรม Microsoft Excel ตัวอักษรแสดงผลเป็นภาษาต่างด้าว (Encoding Error)
+                  <br /><strong>ทางแก้:</strong> พัฒนาชุดดาวน์โหลดโดยทำการประกอบ BOM (Byte Order Mark) <code>\uFEFF</code> แทรกเข้าด้านหน้าสุดของไฟล์ CSV เสมอ เพื่อบังคับให้ Excel อ่านไฟล์ด้วยรหัส UTF-8 และแปลงตัวอักษรไทยให้ปรากฏผลสวยงามสมบูรณ์
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
  
@@ -414,6 +452,8 @@ export default function AboutProjectPage() {
               <li>**การจัดสรรรายงานแยกแยะขาด (Decoupled Dashboard Reports):** คัดแยกและรายงานงบประมาณทุนวิจัยที่เสนอขอจริง ออกจากโครงการในระบบ CEU บน Executive Dashboard เพื่อสถิติที่ตรงความเป็นจริง</li>
               <li>**เชื่อมต่อคิวรับคำปรึกษา CEU ไดนามิกพร้อมระบบป้อนคู่อัตโนมัติ (Dynamic CEU Linkage & Auto-fill):** สลับเชื่อมโยงคิวคำปรึกษา CEU ได้ทุกสถานะนัดหมาย พร้อมดึงชื่อโครงการและสังกัดคณะมาป้อนบนแบบฟอร์มให้อัตโนมัติ เพื่อขจัดขั้นตอนการพิมพ์ฟอร์มซ้ำซ้อน</li>
               <li>**ระบบรักษาและซิงก์จำลองสิทธิ์ข้ามหน้าเพจ (Cross-page Impersonator Sync):** บันทึกจำลองผู้ใช้ผ่านบราวเซอร์ `localStorage` ทำงานซิงก์สิทธิ์เปลี่ยนข้อมูลในทุกหน้าเพจให้อัตโนมัติทันที</li>
+              <li>**สกัดแยกวิเคราะห์ชื่อไทยและสแกนย้ายข้อมูลเก่าอัตโนมัติ (Thai Name Parser Auto-migration):** คัดแยกยศวิชาการและชื่อจริง-นามสกุลไทยที่ซับซ้อนของผู้ใช้และนักวิจัยเดิม 100 กว่ารายเข้าสู่ฟิลด์แยกในฐานข้อมูลโดยอัตโนมัติ พร้อมจัดเรียงตามอักษรชื่อจริง (ก-ฮ)</li>
+              <li>**แผงรายงานผลการประเมินโครงการสำหรับเจ้าหน้าที่ (Evaluations Management Panel):** เพิ่มการรายงานข้อมูลผลประเมิน ค้นหาอย่างอิสระ คัดกรอง คัดเรียง และการส่งออกข้อมูล CSV ภาษาไทยแบบไม่จำกัดและไม่อ่านเพี้ยนบน Excel (BOM UTF-8)</li>
             </ul>
           </div>
 
