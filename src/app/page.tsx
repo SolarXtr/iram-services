@@ -21,7 +21,8 @@ import {
   RefreshCw,
   UserCheck,
   Database,
-  HelpCircle
+  HelpCircle,
+  Download
 } from 'lucide-react';
 
 import { Permission, UserRole, ROLE_LABELS, getPermissionsForRoles, hasPermission as hasPermissionHelper } from '@/lib/permissions';
@@ -113,7 +114,7 @@ interface Evaluation {
 
 export default function ResearchManagementDashboard() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations' | 'db-status' | 'db-explorer'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'projects' | 'publications' | 'consultations' | 'evaluations' | 'db-status' | 'db-explorer'>('dashboard');
   const [currentUserId, setCurrentUserId] = useState<string>('user-3');
   const [activeRole, setActiveRole] = useState<UserRole>('STAFF');
 
@@ -306,6 +307,32 @@ export default function ResearchManagementDashboard() {
     status: 'SCHEDULED',
     advisorId: '',
     requesterId: '',
+  });
+
+  // Evaluations Search, Filter & Sort States
+  const [evalSearchQuery, setEvalSearchQuery] = useState('');
+  const [evalTypeFilter, setEvalTypeFilter] = useState<'ALL' | 'INTERNAL' | 'EXTERNAL'>('ALL');
+  const [evalStatusFilter, setEvalStatusFilter] = useState<'ALL' | 'DRAFT' | 'SUBMITTED'>('ALL');
+  const [evalSortField, setEvalSortField] = useState<'project' | 'evaluator' | 'type' | 'score' | 'status' | 'date'>('date');
+  const [evalSortOrder, setEvalSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Evaluations Editing Modal States
+  const [isEditEvalModalOpen, setIsEditEvalModalOpen] = useState(false);
+  const [editingEval, setEditingEval] = useState<Evaluation | null>(null);
+  const [editEvalForm, setEditEvalForm] = useState({
+    evaluatorType: 'INTERNAL' as 'INTERNAL' | 'EXTERNAL',
+    feedbackResearchProcess: '',
+    feedbackOriginality: '',
+    feedbackExpectedOutput: '',
+    feedbackBudgetAppropriate: '',
+    scoreOverallQuality: 75,
+    bankAccountName: '',
+    bankName: '',
+    bankBranch: '',
+    bankAccountNumber: '',
+    bankBookAttachmentName: '',
+    bankBookAttachmentData: '',
+    status: 'DRAFT' as 'DRAFT' | 'SUBMITTED'
   });
 
   // Fetch API Data
@@ -550,6 +577,101 @@ export default function ResearchManagementDashboard() {
     }
   };
 
+  const handleEditEvalClick = (ev: Evaluation) => {
+    setEditingEval(ev);
+    setEditEvalForm({
+      evaluatorType: (ev.evaluatorType as 'INTERNAL' | 'EXTERNAL') || 'INTERNAL',
+      feedbackResearchProcess: ev.feedbackResearchProcess || '',
+      feedbackOriginality: ev.feedbackOriginality || '',
+      feedbackExpectedOutput: ev.feedbackExpectedOutput || '',
+      feedbackBudgetAppropriate: ev.feedbackBudgetAppropriate || '',
+      scoreOverallQuality: ev.scoreOverallQuality || 75,
+      bankAccountName: ev.bankAccountName || '',
+      bankName: ev.bankName || '',
+      bankBranch: ev.bankBranch || '',
+      bankAccountNumber: ev.bankAccountNumber || '',
+      bankBookAttachmentName: ev.bankBookAttachmentName || '',
+      bankBookAttachmentData: ev.bankBookAttachmentData || '',
+      status: ev.status || 'DRAFT'
+    });
+    setIsEditEvalModalOpen(true);
+  };
+
+  const handleEditEvalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEval) return;
+    try {
+      const res = await fetch(`/api/evaluations/${editingEval.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editEvalForm)
+      });
+      if (res.ok) {
+        setIsEditEvalModalOpen(false);
+        setEditingEval(null);
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'แก้ไขข้อมูลผลการประเมินไม่สำเร็จ');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    }
+  };
+
+  const handleExportEvaluationsCSV = (filteredEvals: Evaluation[]) => {
+    const headers = [
+      'โครงการวิจัย',
+      'ผู้ประเมิน',
+      'อีเมลผู้ประเมิน',
+      'ประเภทผู้ประเมิน',
+      'สถานะ',
+      'คะแนนภาพรวม (ข้อ 5)',
+      '1.กระบวนการวิจัย',
+      '2.ความใหม่/สร้างสรรค์',
+      '3.ผลลัพธ์โครงการ',
+      '4.งบประมาณเหมาะสม',
+      'ชื่อบัญชีรับเงิน',
+      'ธนาคาร',
+      'สาขาธนาคาร',
+      'เลขที่บัญชีธนาคาร',
+      'วันที่ส่ง/แก้ไขล่าสุด'
+    ];
+    const rows = filteredEvals.map(e => [
+      e.project?.title || 'ไม่ระบุโครงการ',
+      e.evaluator?.name || 'ไม่ระบุผู้ประเมิน',
+      e.evaluator?.email || '',
+      e.evaluatorType === 'INTERNAL' ? 'ภายในคณะ' : 'ภายนอกมหาวิทยาลัย',
+      e.status === 'SUBMITTED' ? 'ส่งแล้ว' : 'ฉบับร่าง',
+      e.scoreOverallQuality !== null && e.scoreOverallQuality !== undefined ? `${e.scoreOverallQuality} คะแนน` : 'ยังไม่ประเมิน',
+      e.feedbackResearchProcess || '',
+      e.feedbackOriginality || '',
+      e.feedbackExpectedOutput || '',
+      e.feedbackBudgetAppropriate || '',
+      e.bankAccountName || '',
+      e.bankName || '',
+      e.bankBranch || '',
+      e.bankAccountNumber || '',
+      new Date(e.updatedAt).toLocaleDateString('th-TH')
+    ]);
+    const csvContent = "\uFEFF" + [
+      headers.join(','),
+      ...rows.map(row => row.map(val => {
+        const cleanVal = String(val).replace(/"/g, '""');
+        return `"${cleanVal}"`;
+      }).join(','))
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `รายงานการประเมินโครงการ_${new Date().toLocaleDateString('th-TH').replace(/\//g, '-')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // CRUD handlers for Publications
   const handlePublicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -766,7 +888,19 @@ export default function ResearchManagementDashboard() {
               <Calendar className="h-5 w-5" />
               <span>การให้คำปรึกษา (CEU)</span>
             </button>
- 
+
+            <button
+              onClick={() => { setActiveTab('evaluations'); setEvalSearchQuery(''); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
+                activeTab === 'evaluations'
+                  ? 'bg-[#d97706] text-[#3c2f25] hover:bg-[#c2410c] hover:text-[#fdfcf9] shadow-lg'
+                  : 'text-[#7a685c] hover:bg-[#ebdccf] hover:text-[#1c120c]'
+              }`}
+            >
+              <Award className="h-5 w-5" />
+              <span>ผลการประเมินโครงการวิจัย</span>
+            </button>
+
             <button
               onClick={() => { setActiveTab('users'); setSearchQuery(''); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-left transition-all ${
@@ -2016,6 +2150,199 @@ export default function ResearchManagementDashboard() {
               </div>
             </div>
           )}
+
+          {/* Evaluations View */}
+          {activeTab === 'evaluations' && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Search box */}
+                  <div className="relative w-80">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                      <Search className="h-5 w-5 text-[#8a786c]" />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="ค้นหาชื่อโครงการวิจัย / ผู้ประเมิน..."
+                      value={evalSearchQuery}
+                      onChange={(e) => setEvalSearchQuery(e.target.value)}
+                      className="w-full bg-[#fdfcf9] border border-[#ebdccf] text-sm rounded-xl pl-10 pr-4 py-2.5 focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]"
+                    />
+                  </div>
+
+                  {/* Evaluator Type Filter */}
+                  <select
+                    value={evalTypeFilter}
+                    onChange={(e) => setEvalTypeFilter(e.target.value as any)}
+                    className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl px-4 py-2.5 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] cursor-pointer"
+                  >
+                    <option value="ALL">ประเภทผู้ประเมิน: ทั้งหมด</option>
+                    <option value="INTERNAL">ภายในคณะแพทย์ศาสตร์</option>
+                    <option value="EXTERNAL">ภายนอกมหาวิทยาลัย</option>
+                  </select>
+
+                  {/* Status Filter */}
+                  <select
+                    value={evalStatusFilter}
+                    onChange={(e) => setEvalStatusFilter(e.target.value as any)}
+                    className="bg-[#fdfcf9] border border-[#ebdccf] text-xs font-bold rounded-xl px-4 py-2.5 text-[#3c2f25] focus:outline-none focus:ring-1 focus:ring-[#d97706] cursor-pointer"
+                  >
+                    <option value="ALL">สถานะ: ทั้งหมด</option>
+                    <option value="DRAFT">ฉบับร่าง (DRAFT)</option>
+                    <option value="SUBMITTED">ส่งผลแล้ว (SUBMITTED)</option>
+                  </select>
+                </div>
+
+                {/* CSV Export Button */}
+                <button
+                  onClick={() => {
+                    const filtered = evaluations.filter(e => {
+                      const matchesSearch = (e.project?.title || '').toLowerCase().includes(evalSearchQuery.toLowerCase()) ||
+                                            (e.evaluator?.name || '').toLowerCase().includes(evalSearchQuery.toLowerCase());
+                      const matchesType = evalTypeFilter === 'ALL' || e.evaluatorType === evalTypeFilter;
+                      const matchesStatus = evalStatusFilter === 'ALL' || e.status === evalStatusFilter;
+                      return matchesSearch && matchesType && matchesStatus && !e.isDeleted;
+                    });
+                    handleExportEvaluationsCSV(filtered);
+                  }}
+                  className="flex items-center gap-2 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all cursor-pointer"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
+
+              {/* Data Table */}
+              <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl overflow-hidden shadow-lg">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#f9f5ee] border-b border-[#ebdccf] text-[#7a685c] text-xs font-semibold uppercase tracking-wider">
+                      <th 
+                        className="px-6 py-4 cursor-pointer hover:bg-[#ebdccf]/30 transition-colors"
+                        onClick={() => {
+                          setEvalSortField('project');
+                          setEvalSortOrder(evalSortField === 'project' && evalSortOrder === 'asc' ? 'desc' : 'asc');
+                        }}
+                      >
+                        โครงการวิจัย {evalSortField === 'project' && (evalSortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th 
+                        className="px-6 py-4 cursor-pointer hover:bg-[#ebdccf]/30 transition-colors"
+                        onClick={() => {
+                          setEvalSortField('evaluator');
+                          setEvalSortOrder(evalSortField === 'evaluator' && evalSortOrder === 'asc' ? 'desc' : 'asc');
+                        }}
+                      >
+                        ผู้ทรงคุณวุฒิ {evalSortField === 'evaluator' && (evalSortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th 
+                        className="px-6 py-4 cursor-pointer hover:bg-[#ebdccf]/30 transition-colors"
+                        onClick={() => {
+                          setEvalSortField('type');
+                          setEvalSortOrder(evalSortField === 'type' && evalSortOrder === 'asc' ? 'desc' : 'asc');
+                        }}
+                      >
+                        ประเภท {evalSortField === 'type' && (evalSortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th 
+                        className="px-6 py-4 cursor-pointer hover:bg-[#ebdccf]/30 transition-colors"
+                        onClick={() => {
+                          setEvalSortField('score');
+                          setEvalSortOrder(evalSortField === 'score' && evalSortOrder === 'asc' ? 'desc' : 'asc');
+                        }}
+                      >
+                        คะแนนภาพรวม {evalSortField === 'score' && (evalSortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th 
+                        className="px-6 py-4 cursor-pointer hover:bg-[#ebdccf]/30 transition-colors"
+                        onClick={() => {
+                          setEvalSortField('status');
+                          setEvalSortOrder(evalSortField === 'status' && evalSortOrder === 'asc' ? 'desc' : 'asc');
+                        }}
+                      >
+                        สถานะ {evalSortField === 'status' && (evalSortOrder === 'asc' ? '▲' : '▼')}
+                      </th>
+                      <th className="px-6 py-4 text-right">การจัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ebdccf]/40 text-xs text-[#3c2f25] font-medium">
+                    {evaluations
+                      .filter(e => {
+                        const matchesSearch = (e.project?.title || '').toLowerCase().includes(evalSearchQuery.toLowerCase()) ||
+                                              (e.evaluator?.name || '').toLowerCase().includes(evalSearchQuery.toLowerCase());
+                        const matchesType = evalTypeFilter === 'ALL' || e.evaluatorType === evalTypeFilter;
+                        const matchesStatus = evalStatusFilter === 'ALL' || e.status === evalStatusFilter;
+                        return matchesSearch && matchesType && matchesStatus && !e.isDeleted;
+                      })
+                      .sort((a, b) => {
+                        let compare = 0;
+                        if (evalSortField === 'project') {
+                          compare = (a.project?.title || '').localeCompare(b.project?.title || '', 'th');
+                        } else if (evalSortField === 'evaluator') {
+                          compare = (a.evaluator?.name || '').localeCompare(b.evaluator?.name || '', 'th');
+                        } else if (evalSortField === 'type') {
+                          compare = (a.evaluatorType || '').localeCompare(b.evaluatorType || '');
+                        } else if (evalSortField === 'score') {
+                          compare = (a.scoreOverallQuality || 0) - (b.scoreOverallQuality || 0);
+                        } else if (evalSortField === 'status') {
+                          compare = (a.status || '').localeCompare(b.status || '');
+                        } else {
+                          compare = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+                        }
+                        return evalSortOrder === 'asc' ? compare : -compare;
+                      })
+                      .map((e) => (
+                        <tr key={e.id} className="hover:bg-[#f9f5ee]/40 transition-colors">
+                          <td className="px-6 py-4 font-bold">{e.project?.title || 'ไม่ระบุ'}</td>
+                          <td className="px-6 py-4">
+                            <div>{e.evaluator?.name || 'ไม่ระบุ'}</div>
+                            <div className="text-[10px] text-[#7a685c] font-normal">{e.evaluator?.email || ''}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              e.evaluatorType === 'INTERNAL' ? 'bg-amber-100 text-[#b45309] border border-amber-200' : 'bg-cyan-950 text-cyan-400 border border-cyan-900'
+                            }`}>
+                              {e.evaluatorType === 'INTERNAL' ? 'ภายในคณะ' : 'ภายนอกมหาวิทยาลัย'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-bold text-center">
+                            {e.scoreOverallQuality !== null && e.scoreOverallQuality !== undefined ? (
+                              <span className="text-[#b45309]">{e.scoreOverallQuality} คะแนน</span>
+                            ) : (
+                              <span className="text-[#a09085] italic font-normal">ยังไม่ประเมิน</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              e.status === 'SUBMITTED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-900' : 'bg-[#ebdccf] text-[#7a685c]'
+                            }`}>
+                              {e.status === 'SUBMITTED' ? 'ส่งแล้ว' : 'ฉบับร่าง'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleEditEvalClick(e)}
+                                className="px-3 py-1.5 bg-[#f5e6d3] hover:bg-[#d97706]/20 text-[#b45309] text-[10px] font-bold rounded-lg transition-colors cursor-pointer"
+                              >
+                                แก้ไขผลประเมิน
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEvaluation(e.id)}
+                                className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/20 transition-colors"
+                                title="ลบออก"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
@@ -2466,6 +2793,178 @@ export default function ResearchManagementDashboard() {
                   className="px-4.5 py-2.5 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] text-xs font-semibold rounded-xl shadow-lg"
                 >
                   ยืนยันนัดหมายคิว
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Edit Evaluation Modal */}
+      {isEditEvalModalOpen && editingEval && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-3xl p-8 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-[#3c2f25] mb-6 font-serif">
+              แก้ไขรายละเอียดการประเมินโครงการวิจัย (โดย Staff)
+            </h3>
+            <p className="text-xs text-[#7a685c] mb-4">
+              โครงการ: <span className="font-bold text-[#3c2f25]">{editingEval.project?.title}</span> <br/>
+              ผู้ประเมิน: <span className="font-bold text-[#3c2f25]">{editingEval.evaluator?.name}</span>
+            </p>
+            <form onSubmit={handleEditEvalSubmit} className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">ประเภทผู้ประเมิน</label>
+                  <select
+                    value={editEvalForm.evaluatorType}
+                    onChange={(e) => setEditEvalForm({ ...editEvalForm, evaluatorType: e.target.value as any })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
+                  >
+                    <option value="INTERNAL">ภายในคณะแพทย์ศาสตร์</option>
+                    <option value="EXTERNAL">ภายนอกมหาวิทยาลัย</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">คะแนนภาพรวม (ข้อ 5)</label>
+                  <select
+                    value={editEvalForm.scoreOverallQuality}
+                    onChange={(e) => setEditEvalForm({ ...editEvalForm, scoreOverallQuality: Number(e.target.value) })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
+                  >
+                    <option value={25}>ควรปรับปรุงอย่างยิ่ง (25 คะแนน)</option>
+                    <option value={50}>พอใช้ และควรปรับปรุงบางส่วน (50 คะแนน)</option>
+                    <option value={75}>ดี (75 คะแนน)</option>
+                    <option value={100}>ดีมาก (100 คะแนน)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#7a685c] block mb-2">สถานะการส่ง</label>
+                  <select
+                    value={editEvalForm.status}
+                    onChange={(e) => setEditEvalForm({ ...editEvalForm, status: e.target.value as any })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-sm text-[#3c2f25] focus:border-[#d97706]"
+                  >
+                    <option value="DRAFT">ฉบับร่าง (DRAFT)</option>
+                    <option value="SUBMITTED">ส่งผลแล้ว (SUBMITTED)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-[#ebdccf]/60">
+                <h4 className="text-xs font-bold text-[#3c2f25]">เกณฑ์ความคิดเห็นเชิงคุณภาพ (ข้อ 1-4)</h4>
+                <div>
+                  <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">1. กระบวนการวิจัยและระเบียบวิธีวิจัย</label>
+                  <textarea
+                    value={editEvalForm.feedbackResearchProcess}
+                    onChange={(e) => setEditEvalForm({ ...editEvalForm, feedbackResearchProcess: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] min-h-[60px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">2. ความใหม่และสร้างสรรค์ของโครงการวิจัย</label>
+                  <textarea
+                    value={editEvalForm.feedbackOriginality}
+                    onChange={(e) => setEditEvalForm({ ...editEvalForm, feedbackOriginality: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] min-h-[60px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">3. ผลลัพธ์และประโยชน์ที่คาดว่าจะได้รับ</label>
+                  <textarea
+                    value={editEvalForm.feedbackExpectedOutput}
+                    onChange={(e) => setEditEvalForm({ ...editEvalForm, feedbackExpectedOutput: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] min-h-[60px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">4. ความเหมาะสมของวงเงินงบประมาณ</label>
+                  <textarea
+                    value={editEvalForm.feedbackBudgetAppropriate}
+                    onChange={(e) => setEditEvalForm({ ...editEvalForm, feedbackBudgetAppropriate: e.target.value })}
+                    className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2.5 text-xs text-[#3c2f25] min-h-[60px]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-[#ebdccf]/60">
+                <h4 className="text-xs font-bold text-[#3c2f25]">💰 ข้อมูลการเบิกจ่ายค่าตอบแทนผู้ประเมิน</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">ชื่อเจ้าของบัญชี</label>
+                    <input
+                      type="text"
+                      value={editEvalForm.bankAccountName}
+                      onChange={(e) => setEditEvalForm({ ...editEvalForm, bankAccountName: e.target.value })}
+                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2 text-xs text-[#3c2f25]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">เลขบัญชีเงินฝาก</label>
+                    <input
+                      type="text"
+                      value={editEvalForm.bankAccountNumber}
+                      onChange={(e) => setEditEvalForm({ ...editEvalForm, bankAccountNumber: e.target.value })}
+                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2 text-xs text-[#3c2f25]"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">ธนาคาร</label>
+                    <input
+                      type="text"
+                      value={editEvalForm.bankName}
+                      onChange={(e) => setEditEvalForm({ ...editEvalForm, bankName: e.target.value })}
+                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2 text-xs text-[#3c2f25]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-[#7a685c] block mb-1">สาขาธนาคาร</label>
+                    <input
+                      type="text"
+                      value={editEvalForm.bankBranch}
+                      onChange={(e) => setEditEvalForm({ ...editEvalForm, bankBranch: e.target.value })}
+                      className="w-full bg-[#f9f5ee] border border-[#ebdccf] rounded-xl px-4 py-2 text-xs text-[#3c2f25]"
+                    />
+                  </div>
+                </div>
+                {editEvalForm.bankBookAttachmentName && (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-xs text-emerald-800 mt-2">
+                    <span>📎 {editEvalForm.bankBookAttachmentName}</span>
+                    {editEvalForm.bankBookAttachmentData && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const win = window.open();
+                          if (win) {
+                            win.document.title = editEvalForm.bankBookAttachmentName || 'สำเนาบัญชี';
+                            win.document.write(`<img src="${editEvalForm.bankBookAttachmentData}" style="max-width:100%; height:auto;" />`);
+                          }
+                        }}
+                        className="text-[#d97706] hover:underline font-bold ml-2 text-[10px]"
+                      >
+                        เปิดดู
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-900">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditEvalModalOpen(false);
+                    setEditingEval(null);
+                  }}
+                  className="px-4.5 py-2.5 text-[#7a685c] hover:text-[#3c2f25] text-xs font-semibold rounded-xl hover:bg-[#f9f5ee]"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-4.5 py-2.5 bg-[#d97706] hover:bg-[#f59e0b] text-[#3c2f25] text-xs font-semibold rounded-xl shadow-lg"
+                >
+                  บันทึกข้อมูลแก้ไข
                 </button>
               </div>
             </form>
