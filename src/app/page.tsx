@@ -385,8 +385,24 @@ export default function ResearchManagementDashboard() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Intercept window.fetch to inject x-performed-by header with staff currentUserId context
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+      const newInit = { ...(init || {}) };
+      newInit.headers = {
+        ...(newInit.headers || {}),
+        'x-performed-by': currentUserId
+      };
+      return originalFetch(input, newInit);
+    };
+
     fetchData();
-  }, [fetchData]);
+
+    return () => {
+      window.fetch = originalFetch; // Restore original fetch on unmount
+    };
+  }, [fetchData, currentUserId]);
 
   useEffect(() => {
     if (activeTab === 'db-explorer') {

@@ -156,11 +156,27 @@ const splitThaiName = (fullName: string) => {
   return { title: matchedPrefix, firstName, lastName };
 };
 
+import { headers } from 'next/headers';
+
+// Helper to safely get performedBy from HTTP headers
+const getPerformedByFromHeaders = () => {
+  try {
+    const headerList = headers();
+    return headerList.get('x-performed-by') || null;
+  } catch (e) {
+    return null;
+  }
+};
+
 // Global helper to write audit logs in mock DB
 const logAction = (tableName: string, recordId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', oldData: any, newData: any, performedBy?: string | null) => {
   const db = readDb();
   if (!db.auditLogs) {
     db.auditLogs = [];
+  }
+  let actor = performedBy;
+  if (!actor) {
+    actor = getPerformedByFromHeaders();
   }
   db.auditLogs.push({
     id: 'log-' + Date.now() + '-' + Math.floor(Math.random() * 10000),
@@ -169,7 +185,7 @@ const logAction = (tableName: string, recordId: string, action: 'CREATE' | 'UPDA
     action,
     oldData: oldData ? JSON.stringify(oldData) : null,
     newData: newData ? JSON.stringify(newData) : null,
-    performedBy: performedBy || 'system',
+    performedBy: actor || 'system',
     timestamp: new Date().toISOString(),
   });
   writeDb(db);

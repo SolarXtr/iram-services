@@ -119,6 +119,7 @@ export default function ResearcherWorkspace() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'projects' | 'publications' | 'consultations' | 'presentations' | 'profile' | 'evaluations'>('projects');
   
+  const currentUserId = 'user-3';
   // Selection of researcher to simulate workspace
   const [selectedResearcherId, setSelectedResearcherId] = useState<string>('');
 
@@ -291,7 +292,28 @@ export default function ResearcherWorkspace() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Intercept window.fetch to inject x-performed-by header when impersonating
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+      const impersonatedId = localStorage.getItem('impersonatedUserId') || '';
+      const context = impersonatedId && impersonatedId !== currentUserId
+        ? `${currentUserId} (acting as ${impersonatedId})`
+        : currentUserId;
+
+      const newInit = { ...(init || {}) };
+      newInit.headers = {
+        ...(newInit.headers || {}),
+        'x-performed-by': context
+      };
+      return originalFetch(input, newInit);
+    };
+
     loadData();
+
+    return () => {
+      window.fetch = originalFetch; // Restore original fetch on unmount
+    };
   }, [loadData]);
 
   // General action wrapper to update status indicator
@@ -812,6 +834,12 @@ export default function ResearcherWorkspace() {
                             })
                         )
                       }
+                      
+                      {/* Privacy Disclaimer Footer */}
+                      <div className="px-4 py-2.5 border-t border-[#ebdccf]/50 bg-[#f9f5ee] text-[9.5px] text-[#7a685c] font-medium leading-normal flex items-start gap-1.5 rounded-b-2xl">
+                        <span>🛡️</span>
+                        <span>การจำลองสิทธิ์ใช้เพื่อแก้ไขข้อขัดข้องทางเทคนิคเท่านั้น ทุกการกระทำถูกบันทึกใน Audit Log เพื่อความโปร่งใส</span>
+                      </div>
                     </div>
                   </>
                 )}

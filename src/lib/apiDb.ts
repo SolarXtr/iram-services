@@ -46,6 +46,18 @@ const toIsoString = (val: any) => {
   return new Date(val).toISOString();
 };
 
+import { headers } from 'next/headers';
+
+// Helper to safely get performedBy from HTTP headers
+const getPerformedByFromHeaders = () => {
+  try {
+    const headerList = headers();
+    return headerList.get('x-performed-by') || null;
+  } catch (e) {
+    return null;
+  }
+};
+
 // Helper to write audit logs to Cloudflare D1
 const writeRealAuditLog = async (
   tableName: string,
@@ -56,6 +68,10 @@ const writeRealAuditLog = async (
   performedBy?: string | null
 ) => {
   try {
+    let actor = performedBy;
+    if (!actor) {
+      actor = getPerformedByFromHeaders();
+    }
     const id = crypto.randomUUID();
     await dbQuery(
       'INSERT INTO "irAuditLog" (id, "tableName", "recordId", action, "oldData", "newData", "performedBy", timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)',
@@ -66,7 +82,7 @@ const writeRealAuditLog = async (
         action,
         oldData ? JSON.stringify(oldData) : null,
         newData ? JSON.stringify(newData) : null,
-        performedBy || 'system',
+        actor || 'system',
       ]
     );
   } catch (e) {
