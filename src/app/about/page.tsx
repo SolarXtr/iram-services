@@ -102,7 +102,7 @@ export default function AboutProjectPage() {
             <span>กระบวนการทำงานแบบเป็นขั้นตอน (Development Timeline)</span>
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-6">
             
             {/* Step 1 */}
             <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
@@ -167,6 +167,17 @@ export default function AboutProjectPage() {
               <h3 className="font-bold text-base">ระบบจัดเรียงชื่อวิเคราะห์ไทยและแผงควบคุมประเมิน (Name Parsing & Evaluations Panel)</h3>
               <p className="text-xs text-[#7a685c] mt-2.5 leading-relaxed">
                 สร้างระบบสกัดแยกคำนำหน้า ยศวิชาการและชื่อจริง-นามสกุลภาษาไทยอัตโนมัติ จัดเรียงตามอักษร ก-ฮ และระบบรายงานผลประเมินของผู้ทรงคุณวุฒิ ค้นหา จัดเรียง แก้ไข และส่งออก CSV สำหรับเจ้าหน้าที่
+              </p>
+            </div>
+
+            {/* Step 7 */}
+            <div className="bg-[#fdfcf9] border border-[#ebdccf] rounded-2xl p-6 shadow-sm hover:border-[#d97706] transition-all">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-[#d97706] flex items-center justify-center font-bold text-sm mb-4">
+                07
+              </div>
+              <h3 className="font-bold text-base">มาตรฐานความโปร่งใสสิทธิ์ PDPA (Impersonation Audit Traceability)</h3>
+              <p className="text-xs text-[#7a685c] mt-2.5 leading-relaxed">
+                ติดตั้ง <strong>Dynamic Fetch Interceptor</strong> ฝั่ง Client ดักจับ HTTP Header <code>x-performed-by</code> อัตโนมัติในทุก API Request เพื่อระบุผู้จำลองสิทธิ์จริงลง <code>irAuditLog</code> พร้อมป้ายแจ้งนโยบาย PDPA ในหน้า Impersonation Switcher
               </p>
             </div>
 
@@ -427,6 +438,23 @@ export default function AboutProjectPage() {
               </div>
             </div>
 
+            <div className="p-4 bg-[#f9f5ee] rounded-xl border border-[#ebdccf] flex items-start gap-4">
+              <div className="bg-red-500/10 text-red-600 p-2 rounded-lg mt-0.5">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#3c2f25]">ความท้าทายด้านความโปร่งใสระบบจำลองสิทธิ์ผู้ใช้ — PDPA Best Practices (Admin Impersonation Audit Log Traceability)</h4>
+                <p className="text-xs text-[#7a685c] mt-1 leading-relaxed">
+                  <strong>อาการ:</strong> เมื่อแอดมินหรือเจ้าหน้าที่ใช้ระบบจำลองสิทธิ์เข้าสู่บัญชีนักวิจัย และทำการแก้ไขข้อมูล ระบบ Audit Log ไม่สามารถแยกแยะได้ว่าใครเป็นผู้กระทำจริง (Actor Identity Gap) ทำให้บันทึกเพียงแค่ User ID ของนักวิจัยที่ถูกจำลอง แทนที่จะเป็นตัวตนของแอดมินที่เป็นผู้ดำเนินการจริง
+                  <br /><strong>ทางแก้:</strong> ติดตั้ง <strong>Dynamic Fetch Interceptor</strong> ที่ระดับ Client-side ดักจับทุก <code>window.fetch</code> Request บนหน้า <code>/my-workspace</code> และ Staff Console (<code>/</code>) แล้วแทรก HTTP Header <code>x-performed-by</code> โดยอัตโนมัติ ในรูปแบบ:
+                  <br />— <code>user-X</code> เมื่อผู้ใช้ปกติดำเนินการในบัญชีตัวเอง
+                  <br />— <code>user-X (acting as user-Y)</code> เมื่อแอดมิน/Staff จำลองสิทธิ์เข้าสู่บัญชีนักวิจัย
+                  <br />ฝั่ง Server ใน <code>apiDb.ts</code> และ <code>mockDb.ts</code> จะอ่าน Header <code>x-performed-by</code> ผ่าน <code>next/headers</code> และเขียนค่า Actor จริงลงคอลัมน์ <code>performedBy</code> ในตาราง <code>irAuditLog</code> โดยอัตโนมัติ รองรับทั้ง D1 Production Database และ Local Mock Database พร้อมกัน
+                  <br /><strong>PDPA Consent Disclaimer:</strong> ป้ายแจ้งนโยบาย <em>"การจำลองสิทธิ์ใช้เพื่อแก้ไขข้อขัดข้องทางเทคนิคเท่านั้น ทุกการกระทำถูกบันทึกใน Audit Log เพื่อความโปร่งใส"</em> จะปรากฏที่ด้านล่างของป๊อปอัปเลือกรายชื่อจำลองเสมอ เพื่อให้เจ้าหน้าที่ทราบว่าระบบมีการเฝ้าระวังทุกรายการ
+                </p>
+              </div>
+            </div>
+
           </div>
         </section>
  
@@ -454,6 +482,7 @@ export default function AboutProjectPage() {
               <li>**ระบบรักษาและซิงก์จำลองสิทธิ์ข้ามหน้าเพจ (Cross-page Impersonator Sync):** บันทึกจำลองผู้ใช้ผ่านบราวเซอร์ `localStorage` ทำงานซิงก์สิทธิ์เปลี่ยนข้อมูลในทุกหน้าเพจให้อัตโนมัติทันที</li>
               <li>**สกัดแยกวิเคราะห์ชื่อไทยและสแกนย้ายข้อมูลเก่าอัตโนมัติ (Thai Name Parser Auto-migration):** คัดแยกยศวิชาการและชื่อจริง-นามสกุลไทยที่ซับซ้อนของผู้ใช้และนักวิจัยเดิม 100 กว่ารายเข้าสู่ฟิลด์แยกในฐานข้อมูลโดยอัตโนมัติ พร้อมจัดเรียงตามอักษรชื่อจริง (ก-ฮ)</li>
               <li>**แผงรายงานผลการประเมินโครงการสำหรับเจ้าหน้าที่ (Evaluations Management Panel):** เพิ่มการรายงานข้อมูลผลประเมิน ค้นหาอย่างอิสระ คัดกรอง คัดเรียง และการส่งออกข้อมูล CSV ภาษาไทยแบบไม่จำกัดและไม่อ่านเพี้ยนบน Excel (BOM UTF-8)</li>
+              <li>**ระบบตรวจสอบย้อนหลังผู้จำลองสิทธิ์อย่างสมบูรณ์ (Full Impersonation Audit Traceability — PDPA Best Practices):** ติดตั้ง Dynamic Fetch Interceptor ส่ง HTTP Header <code>x-performed-by</code> ในทุก API Request อัตโนมัติ ไม่ว่าจะเป็นการแก้ไขข้อมูลโดยผู้ใช้ปกติหรือแอดมินที่จำลองสิทธิ์แทนนักวิจัย ฝั่ง Server บันทึก Actor ที่แท้จริงลง Audit Log ครบทุกรายการ และป้ายแจ้งนโยบาย PDPA จะปรากฏในป๊อปอัปจำลองสิทธิ์เสมอ</li>
             </ul>
           </div>
 
