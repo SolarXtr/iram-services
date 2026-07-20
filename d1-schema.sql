@@ -5,9 +5,12 @@
 -- Drop tables if they exist
 DROP TABLE IF EXISTS "irConsultation";
 DROP TABLE IF EXISTS "irPresentation";
+DROP TABLE IF EXISTS "irPublicationAuthor";
 DROP TABLE IF EXISTS "irPublication";
 DROP TABLE IF EXISTS "irResearchProject";
+DROP TABLE IF EXISTS "irResearcherProfile";
 DROP TABLE IF EXISTS "irUser";
+DROP TABLE IF EXISTS "irAuditLog";
 
 -- 1. Create "irUser" Table
 CREATE TABLE "irUser" (
@@ -43,19 +46,36 @@ CREATE TABLE "irResearchProject" (
 -- 3. Create "irPublication" Table
 CREATE TABLE "irPublication" (
     "id" TEXT PRIMARY KEY,
+    "doi" TEXT UNIQUE,
     "title" TEXT NOT NULL,
     "journal" TEXT NOT NULL,
+    "year" TEXT,
+    "coverDate" TEXT,
     "quartile" TEXT NOT NULL, -- 'Q1', 'Q2', 'Q3', 'Q4'
-    "rewardStatus" TEXT DEFAULT 'PENDING', -- 'PENDING', 'APPROVED', 'REJECTED'
-    "rewardAmount" REAL DEFAULT 0.0,
+    "uniRewardStatus" TEXT DEFAULT 'PENDING', -- 'PENDING', 'APPROVED', 'REJECTED'
+    "uniRewardAmount" REAL DEFAULT 0.0,
+    "facultyRewardStatus" TEXT DEFAULT 'PENDING', -- 'PENDING', 'APPROVED', 'REJECTED'
+    "facultyRewardAmount" REAL DEFAULT 0.0,
     "status" TEXT NOT NULL, -- 'WRITING', 'SUBMITTED', 'UNDER_REVIEW', 'PUBLISHED', 'REWARDED'
     "projectId" TEXT,
-    "authorId" TEXT NOT NULL,
+    "claimingAuthorId" TEXT,
     "isDeleted" INTEGER DEFAULT 0,
     "createdAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     "updatedAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     FOREIGN KEY ("projectId") REFERENCES "irResearchProject" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    FOREIGN KEY ("authorId") REFERENCES "irUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    FOREIGN KEY ("claimingAuthorId") REFERENCES "irUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- 3.1 Create "irPublicationAuthor" Table
+CREATE TABLE "irPublicationAuthor" (
+    "id" TEXT PRIMARY KEY,
+    "publicationId" TEXT NOT NULL,
+    "authorName" TEXT NOT NULL,
+    "userId" TEXT,
+    "authorOrder" INTEGER NOT NULL,
+    "isCorresponding" INTEGER DEFAULT 0,
+    FOREIGN KEY ("publicationId") REFERENCES "irPublication" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("userId") REFERENCES "irUser" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- 4. Create "irPresentation" Table
@@ -119,10 +139,16 @@ INSERT INTO "irResearchProject" ("id", "title", "status", "budgetInitial", "budg
 ('project-3', 'การศึกษาสมุนไพรไทยต้านอนุมูลอิสระเพื่อพัฒนาเป็นเวชสำอาง', 'COMPLETED', 600000.0, 590000.0, '2025-01-01T00:00:00.000Z', '2025-12-31T23:59:59.000Z', '2024-11-05T09:00:00.000Z', 'IRB-2024-0012', '2024-12-10T14:00:00.000Z', 'คณะเภสัชศาสตร์', 'user-1');
 
 -- Publications
-INSERT INTO "irPublication" ("id", "title", "journal", "quartile", "rewardStatus", "rewardAmount", "status", "projectId", "authorId") VALUES
-('pub-1', 'Deep Learning Application in Early Detection of Coronary Artery Disease', 'Journal of Medical Systems', 'Q1', 'APPROVED', 50000.0, 'REWARDED', 'project-1', 'user-1'),
-('pub-2', 'Antioxidant activities of Thai traditional herbs for skincare application', 'Cosmetics & Dermatology Research', 'Q2', 'PENDING', 30000.0, 'PUBLISHED', 'project-3', 'user-1'),
-('pub-3', 'Novel tropical virus structures analysis in Southeast Asia', 'Asia-Pacific Journal of Virology', 'Q1', 'PENDING', 50000.0, 'UNDER_REVIEW', 'project-2', 'user-2');
+INSERT INTO "irPublication" ("id", "title", "journal", "quartile", "uniRewardStatus", "uniRewardAmount", "facultyRewardStatus", "facultyRewardAmount", "status", "projectId", "claimingAuthorId") VALUES
+('pub-1', 'Deep Learning Application in Early Detection of Coronary Artery Disease', 'Journal of Medical Systems', 'Q1', 'APPROVED', 50000.0, 'APPROVED', 20000.0, 'REWARDED', 'project-1', 'user-1'),
+('pub-2', 'Antioxidant activities of Thai traditional herbs for skincare application', 'Cosmetics & Dermatology Research', 'Q2', 'PENDING', 30000.0, 'PENDING', 10000.0, 'PUBLISHED', 'project-3', 'user-1'),
+('pub-3', 'Novel tropical virus structures analysis in Southeast Asia', 'Asia-Pacific Journal of Virology', 'Q1', 'PENDING', 50000.0, 'PENDING', 20000.0, 'UNDER_REVIEW', 'project-2', 'user-2');
+
+-- Publication Authors
+INSERT INTO "irPublicationAuthor" ("id", "publicationId", "authorName", "userId", "authorOrder", "isCorresponding") VALUES
+('pub-1-auth-1', 'pub-1', 'ศ.ดร. สมเกียรติ รักเรียน', 'user-1', 1, 1),
+('pub-2-auth-1', 'pub-2', 'ศ.ดร. สมเกียรติ รักเรียน', 'user-1', 1, 0),
+('pub-3-auth-1', 'pub-3', 'ดร. วิภา จิตวิทยา', 'user-2', 2, 1);
 
 -- Presentations
 INSERT INTO "irPresentation" ("id", "title", "conference", "type", "status", "projectId", "presenterId") VALUES
@@ -134,3 +160,19 @@ INSERT INTO "irConsultation" ("id", "type", "appointmentTime", "status", "adviso
 ('consult-1', 'PROTOCOL', '2026-05-15T10:00:00.000Z', 'COMPLETED', 'user-3', 'user-1'),
 ('consult-2', 'STATISTICAL', '2026-05-18T14:00:00.000Z', 'COMPLETED', 'user-3', 'user-2'),
 ('consult-3', 'PROTOCOL', '2026-06-20T09:30:00.000Z', 'SCHEDULED', 'user-3', 'user-1');
+
+-- ========================================================
+-- New Researcher Profile Table
+-- ========================================================
+CREATE TABLE "irResearcherProfile" (
+    "id" TEXT PRIMARY KEY,
+    "userId" TEXT NOT NULL UNIQUE,
+    "scopusAuthorId" TEXT UNIQUE,
+    "nameTh" TEXT,
+    "titleTh" TEXT,
+    "department" TEXT,
+    "status" TEXT DEFAULT 'Active',
+    "createdAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    "updatedAt" TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY ("userId") REFERENCES "irUser" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
