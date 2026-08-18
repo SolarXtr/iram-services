@@ -666,6 +666,14 @@ export const mockDb = {
   },
   
   // Audit Logs Read
+  publicationAuthors: {
+    findManyByUserId: async (userId: string) => {
+      return [];
+    },
+    update: async (id: string, data: any, performedBy?: string | null) => {
+      return {};
+    }
+  },
   auditLogs: {
     findMany: async () => {
       return readDb().auditLogs || [];

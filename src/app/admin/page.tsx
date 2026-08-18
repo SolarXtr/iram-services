@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Briefcase, History, Search, Plus, Edit2, Trash2, Save, X, Check, RefreshCw, AlertCircle
+  Users, Briefcase, History, Search, Plus, Edit2, Trash2, Save, X, Check, RefreshCw, AlertCircle, BookOpen
 } from 'lucide-react';
 
 interface Researcher {
@@ -57,6 +57,8 @@ export default function AdminDashboard() {
   const [researchers, setResearchers] = useState<Researcher[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [history, setHistory] = useState<HistoryLog[]>([]);
+  const [pubAuthors, setPubAuthors] = useState<any[]>([]);
+  const [loadingPubs, setLoadingPubs] = useState(false);
   
   // Loading & UI States
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,54 @@ export default function AdminDashboard() {
       setMessage({ type: 'error', text: 'เกิดข้อผิดพลาดในการโหลดข้อมูลฐานข้อมูล' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPubAuthors = async (userId: string) => {
+    setLoadingPubs(true);
+    try {
+      const res = await fetch(`/api/admin/publication-authors?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPubAuthors(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingPubs(false);
+    }
+  };
+
+  const handleUpdatePubAuthor = async (id: string, newName: string) => {
+    try {
+      const res = await fetch(`/api/admin/publication-authors`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, authorName: newName })
+      });
+      if (res.ok) {
+        alert('อัปเดตผู้เขียนในบทความสำเร็จ');
+        if (currentUser?.id) fetchPubAuthors(currentUser.id);
+      }
+    } catch (e) {
+      alert('อัปเดตล้มเหลว');
+    }
+  };
+
+  const handleUnlinkPubAuthor = async (id: string) => {
+    if (!confirm('คุณต้องการยกเลิกการเชื่อมโยงนักวิจัยรายนี้กับบทความนี้ใช่หรือไม่?')) return;
+    try {
+      const res = await fetch(`/api/admin/publication-authors`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, userId: null })
+      });
+      if (res.ok) {
+        alert('ยกเลิกการเชื่อมโยงสำเร็จ');
+        if (currentUser?.id) fetchPubAuthors(currentUser.id);
+      }
+    } catch (e) {
+      alert('ยกเลิกการเชื่อมโยงล้มเหลว');
     }
   };
 
@@ -343,7 +393,7 @@ export default function AdminDashboard() {
                         <div className="mt-1">Scopus: {u.scopusAuthorId || '-'}</div>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
-                        <button onClick={() => { setCurrentUser({ ...u, titleEn: u.titleEn || u.title || '', firstNameEn: u.firstNameEn || u.firstName || '', lastNameEn: u.lastNameEn || u.lastName || '' }); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
+                        <button onClick={() => { setCurrentUser({ ...u, titleEn: u.titleEn || u.title || '', firstNameEn: u.firstNameEn || u.firstName || '', lastNameEn: u.lastNameEn || u.lastName || '' }); fetchPubAuthors(u.id); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
                         <button onClick={() => handleDeleteUser(u.id)} className="hover:bg-rose-50 p-2 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="ลบ"><Trash2 size={16}/></button>
                       </td>
                     </tr>
@@ -451,6 +501,57 @@ export default function AdminDashboard() {
                   <input type="text" value={currentUser.wosResearcherId || ''} onChange={e => setCurrentUser({...currentUser, wosResearcherId: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
               </div>
+
+              {currentUser.id && (
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <BookOpen size={16} className="text-blue-500" /> ผลงานตีพิมพ์ของนักวิจัย (irPublicationAuthor)
+                  </h3>
+                  {loadingPubs ? (
+                    <div className="text-xs text-slate-400">กำลังโหลดรายการบทความ...</div>
+                  ) : pubAuthors.length === 0 ? (
+                    <div className="text-xs text-slate-400">ไม่มีบทความตีพิมพ์ที่เชื่อมโยงในระบบ</div>
+                  ) : (
+                    <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                      {pubAuthors.map(pa => (
+                        <div key={pa.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
+                          <div className="flex-grow">
+                            <div className="font-bold text-slate-700">{pa.publicationTitle}</div>
+                            <div className="text-slate-400 mt-0.5">{pa.publicationJournal} ({pa.publicationYear})</div>
+                          </div>
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <input 
+                              type="text" 
+                              value={pa.authorName} 
+                              onChange={(e) => {
+                                const updated = pubAuthors.map(x => x.id === pa.id ? { ...x, authorName: e.target.value } : x);
+                                setPubAuthors(updated);
+                              }}
+                              className="px-2 py-1 border border-slate-200 rounded-lg text-xs bg-white w-32"
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => handleUpdatePubAuthor(pa.id, pa.authorName)} 
+                              className="p-1 hover:bg-slate-200 rounded text-emerald-600"
+                              title="บันทึกชื่อผู้เขียน"
+                            >
+                              <Check size={14}/>
+                            </button>
+                            <button 
+                              type="button" 
+                              onClick={() => handleUnlinkPubAuthor(pa.id)} 
+                              className="p-1 hover:bg-rose-50 rounded text-rose-500"
+                              title="ยกเลิกการเชื่อมโยง"
+                            >
+                              <X size={14}/>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {currentUser.id && (
                 <div className="space-y-1 border-t border-slate-100 pt-4">

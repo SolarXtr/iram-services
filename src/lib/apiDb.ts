@@ -1123,6 +1123,47 @@ const realDbHandlers = {
       return current;
     }
   },
+  publicationAuthors: {
+    findManyByUserId: async (userId: string) => {
+      try {
+        const sql = `
+          SELECT pa.*, p.title as "publicationTitle", p.doi as "publicationDoi", p.journal as "publicationJournal", p.year as "publicationYear"
+          FROM "irPublicationAuthor" pa
+          JOIN "irPublication" p ON pa.publicationId = p.id
+          WHERE pa.userId = $1
+        `;
+        const res = await dbQuery(sql, [userId]);
+        return res.rows;
+      } catch (e) {
+        console.error("Failed to find publication authors", e);
+        return [];
+      }
+    },
+    update: async (id: string, data: any, performedBy?: string | null) => {
+      try {
+        const currentRes = await dbQuery('SELECT * FROM "irPublicationAuthor" WHERE id = $1', [id]);
+        const current = currentRes.rows[0];
+        if (!current) throw new Error('Publication author not found');
+
+        const authorName = data.authorName !== undefined ? data.authorName : current.authorName;
+        const userId = data.userId !== undefined ? data.userId : current.userId;
+        const authorOrder = data.authorOrder !== undefined ? data.authorOrder : current.authorOrder;
+        const isCorresponding = data.isCorresponding !== undefined ? (data.isCorresponding ? 1 : 0) : current.isCorresponding;
+
+        await dbQuery(
+          'UPDATE "irPublicationAuthor" SET "authorName" = $1, "userId" = $2, "authorOrder" = $3, "isCorresponding" = $4 WHERE id = $5',
+          [authorName, userId, authorOrder, isCorresponding, id]
+        );
+        
+        const result = { id, authorName, userId, authorOrder, isCorresponding };
+        await writeRealAuditLog('irPublicationAuthor', id, 'UPDATE', current, result, performedBy);
+        return result;
+      } catch (e) {
+        console.error("Failed to update publication author", e);
+        throw e;
+      }
+    }
+  },
   auditLogs: {
     findMany: async () => {
       const res = await dbQuery('SELECT * FROM "irAuditLog" ORDER BY timestamp DESC LIMIT 200');
