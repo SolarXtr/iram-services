@@ -210,7 +210,7 @@ const realDbHandlers = {
       const includeDeleted = options?.includeDeleted ?? false;
       const sql = `
         SELECT u.id, u.name, u.email, u.role, u.title, u."firstName", u."lastName", u."isDeleted", u."employeeId", u."createdAt", u."updatedAt",
-               p.orcid, p.scopusAuthorId, p.wosResearcherId, p.titleTh, p.firstNameTh, p.lastNameTh, p.titleEn, p.firstNameEn, p.lastNameEn
+               p.orcid, p.scopusAuthorId, p.wosResearcherId, p.titleTh, p.firstNameTh, p.lastNameTh, p.titleEn, p.firstNameEn, p.lastNameEn, p.shortNameEn
         FROM "irUser" u
         LEFT JOIN "irResearcherProfile" p ON u.id = p.userId
         ${includeDeleted ? '' : 'WHERE u."isDeleted" = 0 OR u."isDeleted" IS NULL'}
@@ -226,7 +226,7 @@ const realDbHandlers = {
     findUnique: async (id: string) => {
       const sql = `
         SELECT u.id, u.name, u.email, u.role, u.title, u."firstName", u."lastName", u."isDeleted", u."employeeId", u."createdAt", u."updatedAt",
-               p.orcid, p.scopusAuthorId, p.wosResearcherId, p.titleTh, p.firstNameTh, p.lastNameTh, p.titleEn, p.firstNameEn, p.lastNameEn
+               p.orcid, p.scopusAuthorId, p.wosResearcherId, p.titleTh, p.firstNameTh, p.lastNameTh, p.titleEn, p.firstNameEn, p.lastNameEn, p.shortNameEn
         FROM "irUser" u
         LEFT JOIN "irResearcherProfile" p ON u.id = p.userId
         WHERE u.id = $1
@@ -258,11 +258,11 @@ const realDbHandlers = {
       if (data.role === 'RESEARCHER') {
         const profileId = crypto.randomUUID();
         await dbQuery(
-          'INSERT INTO "irResearcherProfile" (id, userId, orcid, scopusAuthorId, wosResearcherId, titleTh, firstNameTh, lastNameTh, titleEn, firstNameEn, lastNameEn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+          'INSERT INTO "irResearcherProfile" (id, userId, orcid, scopusAuthorId, wosResearcherId, titleTh, firstNameTh, lastNameTh, titleEn, firstNameEn, lastNameEn, shortNameEn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
           [
             profileId, id, data.orcid || null, data.scopusAuthorId || null, data.wosResearcherId || null,
             data.titleTh || null, data.firstNameTh || null, data.lastNameTh || null,
-            data.titleEn || null, data.firstNameEn || null, data.lastNameEn || null
+            data.titleEn || null, data.firstNameEn || null, data.lastNameEn || null, data.shortNameEn || null
           ]
         );
       }
@@ -291,7 +291,7 @@ const realDbHandlers = {
       );
 
       // Check if profile details changed and write to irResearcherProfile History
-      const profileFields = ['titleTh', 'firstNameTh', 'lastNameTh', 'titleEn', 'firstNameEn', 'lastNameEn', 'orcid', 'scopusAuthorId', 'wosResearcherId'];
+      const profileFields = ['titleTh', 'firstNameTh', 'lastNameTh', 'titleEn', 'firstNameEn', 'lastNameEn', 'orcid', 'scopusAuthorId', 'wosResearcherId', 'shortNameEn'];
       let profileUpdated = false;
       
       // Check if profile exists
@@ -325,11 +325,11 @@ const realDbHandlers = {
         // Create profile if it didn't exist
         const profileId = crypto.randomUUID();
         await dbQuery(
-          'INSERT INTO "irResearcherProfile" (id, userId, orcid, scopusAuthorId, wosResearcherId, titleTh, firstNameTh, lastNameTh, titleEn, firstNameEn, lastNameEn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+          'INSERT INTO "irResearcherProfile" (id, userId, orcid, scopusAuthorId, wosResearcherId, titleTh, firstNameTh, lastNameTh, titleEn, firstNameEn, lastNameEn, shortNameEn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
           [
             profileId, id, data.orcid || null, data.scopusAuthorId || null, data.wosResearcherId || null,
             data.titleTh || null, data.firstNameTh || null, data.lastNameTh || null,
-            data.titleEn || null, data.firstNameEn || null, data.lastNameEn || null
+            data.titleEn || null, data.firstNameEn || null, data.lastNameEn || null, data.shortNameEn || null
           ]
         );
       }

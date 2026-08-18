@@ -22,6 +22,7 @@ interface Researcher {
   orcid?: string | null;
   scopusAuthorId?: string | null;
   wosResearcherId?: string | null;
+  shortNameEn?: string | null;
   changeReason?: string | null;
 }
 
@@ -393,7 +394,7 @@ export default function AdminDashboard() {
                         <div className="mt-1">Scopus: {u.scopusAuthorId || '-'}</div>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
-                        <button onClick={() => { setCurrentUser({ ...u, titleEn: u.titleEn || u.title || '', firstNameEn: u.firstNameEn || u.firstName || '', lastNameEn: u.lastNameEn || u.lastName || '' }); fetchPubAuthors(u.id); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
+                        <button onClick={() => { setCurrentUser({ ...u, titleEn: u.titleEn || u.title || '', firstNameEn: u.firstNameEn || u.firstName || '', lastNameEn: u.lastNameEn || u.lastName || '', shortNameEn: u.shortNameEn || '' }); fetchPubAuthors(u.id); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
                         <button onClick={() => handleDeleteUser(u.id)} className="hover:bg-rose-50 p-2 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="ลบ"><Trash2 size={16}/></button>
                       </td>
                     </tr>
@@ -474,6 +475,12 @@ export default function AdminDashboard() {
                   <label className="text-xs font-bold text-slate-600">นามสกุล (EN)</label>
                   <input type="text" required value={currentUser.lastNameEn || ''} onChange={e => setCurrentUser({...currentUser, lastNameEn: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600">ชื่อย่อภาษาอังกฤษสำหรับฐานข้อมูลวิจัย (เช่น Kosum P.)</label>
+                <input type="text" placeholder="เช่น Kosum P." value={currentUser.shortNameEn || ''} onChange={e => setCurrentUser({...currentUser, shortNameEn: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white" />
+                <p className="text-xs text-slate-400">ใช้สำหรับจับคู่ผลงานวิจัยระดับนานาชาติ (Scopus, WoS) เพื่อไม่ให้ชื่อย่อชนกัน</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
