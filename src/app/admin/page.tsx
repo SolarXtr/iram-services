@@ -16,6 +16,9 @@ interface Researcher {
   titleEn?: string | null;
   firstNameEn?: string | null;
   lastNameEn?: string | null;
+  title?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   orcid?: string | null;
   scopusAuthorId?: string | null;
   wosResearcherId?: string | null;
@@ -340,7 +343,7 @@ export default function AdminDashboard() {
                         <div className="mt-1">Scopus: {u.scopusAuthorId || '-'}</div>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
-                        <button onClick={() => { setCurrentUser(u); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
+                        <button onClick={() => { setCurrentUser({ ...u, titleEn: u.titleEn || u.title || '', firstNameEn: u.firstNameEn || u.firstName || '', lastNameEn: u.lastNameEn || u.lastName || '' }); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
                         <button onClick={() => handleDeleteUser(u.id)} className="hover:bg-rose-50 p-2 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="ลบ"><Trash2 size={16}/></button>
                       </td>
                     </tr>
