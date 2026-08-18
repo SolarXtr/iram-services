@@ -72,6 +72,8 @@ export default function AdminDashboard() {
   
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [currentProject, setCurrentProject] = useState<Partial<Project> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // Fetch Data
   const fetchData = async () => {
@@ -153,6 +155,8 @@ export default function AdminDashboard() {
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+    setSaving(true);
+    setModalError(null);
 
     try {
       const isEdit = !!currentUser.id;
@@ -169,7 +173,7 @@ export default function AdminDashboard() {
         ...currentUser,
         name,
         role: 'RESEARCHER',
-        changeReason: isEdit ? 'Admin profile update' : 'New researcher registration'
+        changeReason: isEdit ? (currentUser.changeReason || 'Profile update') : 'New researcher registration'
       };
 
       const res = await fetch(url, {
@@ -178,19 +182,26 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('บันทึกข้อมูลล้มเหลว');
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'บันทึกข้อมูลล้มเหลว');
+      }
 
       setMessage({ type: 'success', text: isEdit ? 'อัปเดตข้อมูลนักวิจัยสำเร็จ' : 'เพิ่มนักวิจัยใหม่สำเร็จ' });
       setShowUserModal(false);
       fetchData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setModalError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProject) return;
+    setSaving(true);
+    setModalError(null);
 
     try {
       const isEdit = !!currentProject.id;
@@ -203,13 +214,18 @@ export default function AdminDashboard() {
         body: JSON.stringify(currentProject)
       });
 
-      if (!res.ok) throw new Error('บันทึกข้อมูลโครงการล้มเหลว');
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'บันทึกข้อมูลโครงการล้มเหลว');
+      }
 
       setMessage({ type: 'success', text: isEdit ? 'อัปเดตข้อมูลโครงการสำเร็จ' : 'เพิ่มโครงการวิจัยสำเร็จ' });
       setShowProjectModal(false);
       fetchData();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setModalError(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -312,11 +328,11 @@ export default function AdminDashboard() {
               />
             </div>
             {activeTab === 'researchers' ? (
-              <button onClick={() => { setCurrentUser({}); setShowUserModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transition-all shadow-md">
+              <button onClick={() => { setCurrentUser({}); setModalError(null); setShowUserModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transition-all shadow-md">
                 <Plus size={18}/> ลงทะเบียนนักวิจัยใหม่
               </button>
             ) : (
-              <button onClick={() => { setCurrentProject({ status: 'ONGOING', budgetInitial: 0, budgetSpent: 0 }); setShowProjectModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transition-all shadow-md">
+              <button onClick={() => { setCurrentProject({ status: 'ONGOING', budgetInitial: 0, budgetSpent: 0 }); setModalError(null); setShowProjectModal(true); }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transition-all shadow-md">
                 <Plus size={18}/> เพิ่มโครงการวิจัยใหม่
               </button>
             )}
@@ -356,7 +372,7 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
-                        <button onClick={() => { setCurrentProject(p); setShowProjectModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
+                        <button onClick={() => { setCurrentProject(p); setModalError(null); setShowProjectModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
                         <button onClick={() => handleDeleteProject(p.id)} className="hover:bg-rose-50 p-2 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="ลบ"><Trash2 size={16}/></button>
                       </td>
                     </tr>
@@ -394,7 +410,7 @@ export default function AdminDashboard() {
                         <div className="mt-1">Scopus: {u.scopusAuthorId || '-'}</div>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
-                        <button onClick={() => { setCurrentUser({ ...u, titleEn: u.titleEn || u.title || '', firstNameEn: u.firstNameEn || u.firstName || '', lastNameEn: u.lastNameEn || u.lastName || '', shortNameEn: u.shortNameEn || '' }); fetchPubAuthors(u.id); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
+                        <button onClick={() => { setCurrentUser({ ...u, titleEn: u.titleEn || u.title || '', firstNameEn: u.firstNameEn || u.firstName || '', lastNameEn: u.lastNameEn || u.lastName || '', shortNameEn: u.shortNameEn || '' }); setModalError(null); fetchPubAuthors(u.id); setShowUserModal(true); }} className="hover:bg-slate-100 p-2 rounded-lg text-slate-500 hover:text-slate-700 transition-colors" title="แก้ไข"><Edit2 size={16}/></button>
                         <button onClick={() => handleDeleteUser(u.id)} className="hover:bg-rose-50 p-2 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="ลบ"><Trash2 size={16}/></button>
                       </td>
                     </tr>
@@ -447,6 +463,11 @@ export default function AdminDashboard() {
             </div>
             
             <form onSubmit={handleSaveUser} className="p-6 space-y-6">
+              {modalError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs font-bold flex items-center gap-2">
+                  <AlertCircle size={14} /> {modalError}
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-600">คำนำหน้า (ไทย)</label>
@@ -569,7 +590,7 @@ export default function AdminDashboard() {
 
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
                 <button type="button" onClick={() => setShowUserModal(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-lg text-sm transition-colors">ยกเลิก</button>
-                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors flex items-center gap-1"><Save size={16}/> บันทึกข้อมูล</button>
+                <button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors flex items-center gap-1"><Save size={16}/> {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}</button>
               </div>
             </form>
           </div>
@@ -586,6 +607,11 @@ export default function AdminDashboard() {
             </div>
             
             <form onSubmit={handleSaveProject} className="p-6 space-y-6">
+              {modalError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs font-bold flex items-center gap-2">
+                  <AlertCircle size={14} /> {modalError}
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-600">ชื่อโครงการวิจัย</label>
                 <input type="text" required value={currentProject.title || ''} onChange={e => setCurrentProject({...currentProject, title: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
@@ -642,7 +668,7 @@ export default function AdminDashboard() {
 
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
                 <button type="button" onClick={() => setShowProjectModal(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-lg text-sm transition-colors">ยกเลิก</button>
-                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors flex items-center gap-1"><Save size={16}/> บันทึกโครงการ</button>
+                <button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors flex items-center gap-1"><Save size={16}/> {saving ? "กำลังบันทึก..." : "บันทึกโครงการ"}</button>
               </div>
             </form>
           </div>

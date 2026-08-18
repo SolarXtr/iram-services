@@ -310,9 +310,11 @@ const realDbHandlers = {
             pIndex++;
             
             // Record history log
+            // Resolve recordedBy to a valid UUID or null to satisfy SQLite FK constraints
+            const recorderId = (performedBy && performedBy !== 'admin' && performedBy !== 'system') ? performedBy : null;
             await dbQuery(
               'INSERT INTO "irResearcherProfileHistory" (id, userId, changedField, oldValue, newValue, effectiveDate, recordedBy, reason) VALUES ($1, $2, $3, $4, $5, date(\'now\'), $6, $7)',
-              [crypto.randomUUID(), id, field, String(current[field] || ''), String(data[field] || ''), performedBy || 'admin', data.changeReason || 'Profile update']
+              [crypto.randomUUID(), id, field, String(current[field] || ''), String(data[field] || ''), recorderId, data.changeReason || 'Profile update']
             );
             profileUpdated = true;
           }
