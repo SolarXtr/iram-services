@@ -75,7 +75,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="p-4 border-t border-slate-800">
-          <Link href="/admin/projects" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all duration-200 group">
+          <Link href="/admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all duration-200 group">
             <Settings size={20} className="text-slate-500 group-hover:text-slate-300" />
             Admin Settings
           </Link>
@@ -133,7 +133,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
             })}
             <div className="border-t border-slate-100 mt-2 pt-2">
               <Link 
-                href="/admin/projects"
+                href="/admin"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all duration-200"
               >
