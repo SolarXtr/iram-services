@@ -341,7 +341,20 @@ const realDbHandlers = {
         const params = [];
         let pIndex = 1;
         for (const field of profileFields) {
-          if (data[field] !== undefined && isDifferent(data[field], current[field])) {
+          let fieldDifferent = isDifferent(data[field], current[field]);
+
+          // Fallback logic to prevent logging initial sync from base irUser fields
+          if (field === 'titleEn' && !current.titleEn && !isDifferent(data.titleEn, current.title)) {
+            fieldDifferent = false;
+          }
+          if (field === 'firstNameEn' && !current.firstNameEn && !isDifferent(data.firstNameEn, current.firstName)) {
+            fieldDifferent = false;
+          }
+          if (field === 'lastNameEn' && !current.lastNameEn && !isDifferent(data.lastNameEn, current.lastName)) {
+            fieldDifferent = false;
+          }
+
+          if (data[field] !== undefined && fieldDifferent) {
             updates.push(`"${field}" = $${pIndex}`);
             params.push(data[field] || null);
             pIndex++;
