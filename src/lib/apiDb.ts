@@ -90,6 +90,13 @@ const writeRealAuditLog = async (
   }
 };
 
+// Helper to check if two values are truly different, treating null/undefined/empty string as equivalent
+const isDifferent = (val1: any, val2: any) => {
+  const c1 = (val1 === null || val1 === undefined) ? '' : String(val1).trim();
+  const c2 = (val2 === null || val2 === undefined) ? '' : String(val2).trim();
+  return c1 !== c2;
+};
+
 export const splitThaiName = (fullName: string) => {
   if (!fullName) return { title: '', firstName: '', lastName: '' };
   const prefixes = [
@@ -275,20 +282,50 @@ const realDbHandlers = {
       const current = await realDbHandlers.users.findUnique(id);
       if (!current) throw new Error('User not found');
       
-      // Check if updating irUser
+      const role = data.role !== undefined ? data.role : current.role;
+
+      // 1. Build dynamic UPDATE for irUser
+      const userFields = ['email', 'role', 'title', 'firstName', 'lastName', 'employeeId'];
+      const userUpdates = [];
+      const userParams = [];
+      let uIndex = 1;
+
+      // Handle name concatenation if any name part changed
       const title = data.title !== undefined ? data.title : current.title;
       const firstName = data.firstName !== undefined ? data.firstName : current.firstName;
       const lastName = data.lastName !== undefined ? data.lastName : current.lastName;
-      const name = data.name || `${title} ${firstName} ${lastName}`.trim().replace(/\s+/, ' ');
-      const email = data.email !== undefined ? data.email : current.email;
-      const role = data.role !== undefined ? data.role : current.role;
-      const employeeId = data.employeeId !== undefined ? data.employeeId : current.employeeId;
-      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted ? 1 : 0);
+      const newName = `${title || ''} ${firstName || ''} ${lastName || ''}`.trim().replace(/\s+/, ' ');
+      
+      if (newName !== current.name) {
+        userUpdates.push(`"name" = $${uIndex}`);
+        userParams.push(newName);
+        uIndex++;
+      }
 
-      await dbQuery(
-        'UPDATE "irUser" SET name = $1, email = $2, role = $3, title = $4, "firstName" = $5, "lastName" = $6, "isDeleted" = $7, "employeeId" = $8, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $9',
-        [name, email, role, title, firstName, lastName, isDeleted, employeeId, id]
-      );
+      for (const field of userFields) {
+        if (data[field] !== undefined && isDifferent(data[field], current[field])) {
+          userUpdates.push(`"${field}" = $${uIndex}`);
+          userParams.push(data[field] || null);
+          uIndex++;
+        }
+      }
+
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted ? 1 : 0);
+      const currentIsDeletedNum = current.isDeleted ? 1 : 0;
+      if (isDeleted !== currentIsDeletedNum) {
+        userUpdates.push(`"isDeleted" = $${uIndex}`);
+        userParams.push(isDeleted);
+        uIndex++;
+      }
+
+      if (userUpdates.length > 0) {
+        userUpdates.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+        userParams.push(id);
+        await dbQuery(
+          `UPDATE "irUser" SET ${userUpdates.join(', ')} WHERE id = $${uIndex}`,
+          userParams
+        );
+      }
 
       // Check if profile details changed and write to irResearcherProfile History
       const profileFields = ['titleTh', 'firstNameTh', 'lastNameTh', 'titleEn', 'firstNameEn', 'lastNameEn', 'orcid', 'scopusAuthorId', 'wosResearcherId', 'shortNameEn'];
@@ -304,7 +341,7 @@ const realDbHandlers = {
         const params = [];
         let pIndex = 1;
         for (const field of profileFields) {
-          if (data[field] !== undefined && data[field] !== current[field]) {
+          if (data[field] !== undefined && isDifferent(data[field], current[field])) {
             updates.push(`"${field}" = $${pIndex}`);
             params.push(data[field] || null);
             pIndex++;
