@@ -40,10 +40,14 @@ export const getIsMock = () => {
   }
 };
 
-// Date formatter helper to match ISO string formatting
+// Date formatter helper to safely match ISO string formatting
 const toIsoString = (val: any) => {
   if (!val) return val;
-  return new Date(val).toISOString();
+  const d = new Date(val);
+  if (isNaN(d.getTime())) {
+    return val; // Return original value if it is not a valid date
+  }
+  return d.toISOString();
 };
 
 import { headers } from 'next/headers';
