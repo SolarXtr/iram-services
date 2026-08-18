@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "ระบบเว็บแอปพลิเคชันสำหรับการบริหารจัดการข้อมูลนักวิจัย โครงการวิจัย การตีพิมพ์วารสารวิชาการ และการนัดหมายให้คำปรึกษาอย่างมีประสิทธิภาพ",
 };
 
+import Navigation from "@/components/Navigation";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -22,7 +24,11 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full">
+        <Navigation>
+          {children}
+        </Navigation>
+      </body>
     </html>
   );
 }

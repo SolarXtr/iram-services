@@ -669,6 +669,9 @@ export const mockDb = {
   auditLogs: {
     findMany: async () => {
       return readDb().auditLogs || [];
+    },
+    findHistory: async () => {
+      return [];
     }
   }
 };

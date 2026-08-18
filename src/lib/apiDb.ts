@@ -205,12 +205,17 @@ const mapUserRoles = (u: any) => {
 
 // Database handlers for D1 (Production)
 const realDbHandlers = {
-  users: {
+    users: {
     findMany: async (options?: { includeDeleted?: boolean }) => {
       const includeDeleted = options?.includeDeleted ?? false;
-      const sql = includeDeleted
-        ? 'SELECT id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt" FROM "irUser" ORDER BY "firstName" ASC'
-        : 'SELECT id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE "isDeleted" = 0 OR "isDeleted" IS NULL ORDER BY "firstName" ASC';
+      const sql = `
+        SELECT u.id, u.name, u.email, u.role, u.title, u."firstName", u."lastName", u."isDeleted", u."employeeId", u."createdAt", u."updatedAt",
+               p.orcid, p.scopusAuthorId, p.wosResearcherId, p.titleTh, p.firstNameTh, p.lastNameTh, p.titleEn, p.firstNameEn, p.lastNameEn
+        FROM "irUser" u
+        LEFT JOIN "irResearcherProfile" p ON u.id = p.userId
+        ${includeDeleted ? '' : 'WHERE u."isDeleted" = 0 OR u."isDeleted" IS NULL'}
+        ORDER BY u."firstName" ASC
+      `;
       const res = await dbQuery(sql);
       return res.rows.map((r: any) => mapUserRoles({
         ...r,
@@ -219,7 +224,14 @@ const realDbHandlers = {
       }));
     },
     findUnique: async (id: string) => {
-      const res = await dbQuery('SELECT id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt" FROM "irUser" WHERE id = $1', [id]);
+      const sql = `
+        SELECT u.id, u.name, u.email, u.role, u.title, u."firstName", u."lastName", u."isDeleted", u."employeeId", u."createdAt", u."updatedAt",
+               p.orcid, p.scopusAuthorId, p.wosResearcherId, p.titleTh, p.firstNameTh, p.lastNameTh, p.titleEn, p.firstNameEn, p.lastNameEn
+        FROM "irUser" u
+        LEFT JOIN "irResearcherProfile" p ON u.id = p.userId
+        WHERE u.id = $1
+      `;
+      const res = await dbQuery(sql, [id]);
       const r = res.rows[0];
       if (!r) return null;
       return mapUserRoles({
@@ -234,51 +246,103 @@ const realDbHandlers = {
       const firstName = data.firstName || '';
       const lastName = data.lastName || '';
       const name = data.name || `${title} ${firstName} ${lastName}`.trim().replace(/\s+/, ' ');
+      const employeeId = data.employeeId || null;
+      
+      // 1. Insert into irUser
       const res = await dbQuery(
-        'INSERT INTO "irUser" (id, name, email, role, title, "firstName", "lastName", "isDeleted", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
-        [id, name, data.email, data.role, title, firstName, lastName]
+        'INSERT INTO "irUser" (id, name, email, role, title, "firstName", "lastName", "isDeleted", "employeeId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
+        [id, name, data.email, data.role, title, firstName, lastName, employeeId]
       );
-      const r = res.rows[0];
-      const result = mapUserRoles({
-        ...r,
-        createdAt: toIsoString(r.createdAt),
-        updatedAt: toIsoString(r.updatedAt),
-      });
+      
+      // 2. Insert into irResearcherProfile if role is RESEARCHER
+      if (data.role === 'RESEARCHER') {
+        const profileId = crypto.randomUUID();
+        await dbQuery(
+          'INSERT INTO "irResearcherProfile" (id, userId, orcid, scopusAuthorId, wosResearcherId, titleTh, firstNameTh, lastNameTh, titleEn, firstNameEn, lastNameEn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+          [
+            profileId, id, data.orcid || null, data.scopusAuthorId || null, data.wosResearcherId || null,
+            data.titleTh || null, data.firstNameTh || null, data.lastNameTh || null,
+            data.titleEn || null, data.firstNameEn || null, data.lastNameEn || null
+          ]
+        );
+      }
+      
+      const result = await realDbHandlers.users.findUnique(id);
       await writeRealAuditLog('irUser', id, 'CREATE', null, result, performedBy);
       return result;
     },
     update: async (id: string, data: any, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irUser" WHERE id = $1', [id]);
-      const current = currentRes.rows[0];
+      const current = await realDbHandlers.users.findUnique(id);
       if (!current) throw new Error('User not found');
       
+      // Check if updating irUser
       const title = data.title !== undefined ? data.title : current.title;
       const firstName = data.firstName !== undefined ? data.firstName : current.firstName;
       const lastName = data.lastName !== undefined ? data.lastName : current.lastName;
       const name = data.name || `${title} ${firstName} ${lastName}`.trim().replace(/\s+/, ' ');
       const email = data.email !== undefined ? data.email : current.email;
       const role = data.role !== undefined ? data.role : current.role;
-      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted === 1 || current.isDeleted === true || current.isDeleted === '1' ? 1 : 0);
+      const employeeId = data.employeeId !== undefined ? data.employeeId : current.employeeId;
+      const isDeleted = data.isDeleted !== undefined ? (data.isDeleted ? 1 : 0) : (current.isDeleted ? 1 : 0);
 
-      const res = await dbQuery(
-        'UPDATE "irUser" SET name = $1, email = $2, role = $3, title = $4, "firstName" = $5, "lastName" = $6, "isDeleted" = $7, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $8 RETURNING *',
-        [name, email, role, title, firstName, lastName, isDeleted, id]
+      await dbQuery(
+        'UPDATE "irUser" SET name = $1, email = $2, role = $3, title = $4, "firstName" = $5, "lastName" = $6, "isDeleted" = $7, "employeeId" = $8, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $9',
+        [name, email, role, title, firstName, lastName, isDeleted, employeeId, id]
       );
-      const r = res.rows[0];
-      const result = mapUserRoles({
-        ...r,
-        createdAt: toIsoString(r.createdAt),
-        updatedAt: toIsoString(r.updatedAt),
-      });
+
+      // Check if profile details changed and write to irResearcherProfile History
+      const profileFields = ['titleTh', 'firstNameTh', 'lastNameTh', 'titleEn', 'firstNameEn', 'lastNameEn', 'orcid', 'scopusAuthorId', 'wosResearcherId'];
+      let profileUpdated = false;
+      
+      // Check if profile exists
+      const profileCheck = await dbQuery('SELECT id FROM "irResearcherProfile" WHERE userId = $1', [id]);
+      const hasProfile = profileCheck.rows.length > 0;
+      
+      if (hasProfile) {
+        // Build update statement dynamically
+        const updates = [];
+        const params = [];
+        let pIndex = 1;
+        for (const field of profileFields) {
+          if (data[field] !== undefined && data[field] !== current[field]) {
+            updates.push(`"${field}" = $${pIndex}`);
+            params.push(data[field] || null);
+            pIndex++;
+            
+            // Record history log
+            await dbQuery(
+              'INSERT INTO "irResearcherProfileHistory" (id, userId, changedField, oldValue, newValue, effectiveDate, recordedBy, reason) VALUES ($1, $2, $3, $4, $5, date(\'now\'), $6, $7)',
+              [crypto.randomUUID(), id, field, String(current[field] || ''), String(data[field] || ''), performedBy || 'admin', data.changeReason || 'Profile update']
+            );
+            profileUpdated = true;
+          }
+        }
+        if (updates.length > 0) {
+          params.push(id);
+          await dbQuery(`UPDATE "irResearcherProfile" SET ${updates.join(', ')} WHERE userId = $${pIndex}`, params);
+        }
+      } else if (role === 'RESEARCHER') {
+        // Create profile if it didn't exist
+        const profileId = crypto.randomUUID();
+        await dbQuery(
+          'INSERT INTO "irResearcherProfile" (id, userId, orcid, scopusAuthorId, wosResearcherId, titleTh, firstNameTh, lastNameTh, titleEn, firstNameEn, lastNameEn) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+          [
+            profileId, id, data.orcid || null, data.scopusAuthorId || null, data.wosResearcherId || null,
+            data.titleTh || null, data.firstNameTh || null, data.lastNameTh || null,
+            data.titleEn || null, data.firstNameEn || null, data.lastNameEn || null
+          ]
+        );
+      }
+
+      const result = await realDbHandlers.users.findUnique(id);
       await writeRealAuditLog('irUser', id, 'UPDATE', current, result, performedBy);
       return result;
     },
     delete: async (id: string, performedBy?: string | null) => {
-      const currentRes = await dbQuery('SELECT * FROM "irUser" WHERE id = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL)', [id]);
-      const current = currentRes.rows[0];
+      const current = await realDbHandlers.users.findUnique(id);
       if (!current) return null;
 
-      // Check if user has active projects (status APPROVED or ONGOING and isDeleted = 0)
+      // Check if user has active projects
       const activeProjRes = await dbQuery(
         'SELECT id FROM "irResearchProject" WHERE "leaderId" = $1 AND ("isDeleted" = 0 OR "isDeleted" IS NULL) AND (status = \'APPROVED\' OR status = \'ONGOING\') LIMIT 1',
         [id]
@@ -287,13 +351,8 @@ const realDbHandlers = {
         throw new Error('ไม่สามารถลบนักวิจัยรายนี้ได้ เนื่องจากยังมีโครงการวิจัยที่กำลังดำเนินงานอยู่ กรุณาทำการโอนย้ายโครงการวิจัยให้ผู้อื่นดูแลแทนก่อนลบ');
       }
 
-      const res = await dbQuery('UPDATE "irUser" SET "isDeleted" = 1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *', [id]);
-      const r = res.rows[0];
-      const result = mapUserRoles({
-        ...r,
-        createdAt: toIsoString(r.createdAt),
-        updatedAt: toIsoString(r.updatedAt),
-      });
+      await dbQuery('UPDATE "irUser" SET "isDeleted" = 1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+      const result = await realDbHandlers.users.findUnique(id);
       await writeRealAuditLog('irUser', id, 'DELETE', current, null, performedBy);
       return result;
     },
@@ -1071,6 +1130,19 @@ const realDbHandlers = {
         ...r,
         timestamp: toIsoString(r.timestamp),
       }));
+    },
+    findHistory: async () => {
+      try {
+        const res = await dbQuery(`
+          SELECT h.*, u.name as "userName" 
+          FROM "irResearcherProfileHistory" h
+          LEFT JOIN "irUser" u ON h.userId = u.id
+          ORDER BY h.recordedAt DESC LIMIT 200
+        `);
+        return res.rows;
+      } catch (e) {
+        return [];
+      }
     }
   }
 };
